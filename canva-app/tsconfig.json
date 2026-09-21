@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "es2019", "es2020.promise"],
+    "types": ["node", "webpack-env", "jest"],
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "noImplicitOverride": true,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "target": "ES2019",
+    "sourceMap": true,
+    "inlineSources": true,
+    "module": "ESNext",
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "src/*": ["./src/*"],
+      "styles/*": ["./styles/*"]
+    }
+  },
+  "include": [
+    "./src/**/*",
+    "./tests/**/*",
+    "./declarations/declarations.d.ts",
+    "./styles/**/*"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

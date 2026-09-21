@@ -1,0 +1,7 @@
+interface:
+  display_name: "Coala Canva Textbook"
+  short_description: "큰 글씨와 충분한 여백을 지키는 교육 교재 제작"
+  default_prompt: "Use $coala-canva-textbook to create a readable Korean educational textbook from my outline."
+
+policy:
+  allow_implicit_invocation: true

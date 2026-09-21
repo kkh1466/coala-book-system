@@ -1,0 +1,231 @@
+# Coala Book Builder 테스트
+
+이 프로젝트는 구조화된 Markdown 원고를 검증하고 Canva Apps SDK로 교재 페이지를 생성한다. 원본 스킬의 PNG는 시각 참고로만 사용하며 앱에 포함하거나 페이지 배경으로 사용하지 않는다.
+
+페이지는 Canva의 요청 속도 제한에 맞춰 한 번에 하나씩, 간격을 두고 추가하며 `rate_limited`는 제한된 횟수만 자동 재시도한다. 현재 Markdown 업로드와 구조 검증, 자동 페이지 번호 확정, 챕터 오프닝, 기본·카드형 개념, 비교표, 실습 오프닝, 실습 체크리스트 생성이 구현되어 있다. 본문 글꼴은 Wanted Sans이며, 글꼴은 목록 조회 결과가 아니라 실제 페이지 생성 호출로 판정한다. 순서도는 지정된 Canva Elements 라이브러리 그래픽을 그대로 사용해야 하지만, 공개 Apps SDK에서 그래픽 ID로 해당 요소를 검색·삽입하는 기능을 확인할 수 없다. 그래서 앱은 **순서도를 그리지 않고 자리만 비워 둔다.** 순서도 페이지에는 제목·도입문·마무리 글과 회색 자리 하나, 그리고 무엇을 만들어야 하는지 적은 안내 글만 놓이며, 사용자가 Canva에서 지정된 요소로 직접 만든다(스킬 `flowcharts.md`의 user-assisted 경로). 평행사변형·마름모·문서 모양이나 선을 임의 벡터로 그려 대체하지 않는다.
+
+## 개발 환경과 실행
+
+- 권장 환경: Node.js 24, npm 11
+- 설치: `npm install`
+- 타입 검사: `npm run lint:types`
+- lint: `npm run lint`
+- 테스트: `npm test`
+- production build: `npm run build`
+- 개발 서버: `npm start`
+- Safari용 HTTPS 개발 서버: `npm start --use-https`
+
+## 사용자가 Canva에서 준비할 단계
+
+1. [Canva Developer Portal](https://www.canva.com/developers/apps)에서 새 앱을 만든다.
+2. 앱의 **App source > Development URL**을 `http://localhost:8080`으로 설정한다. Safari에서는 `https://localhost:8080`을 사용하고 로컬 인증서 경고를 먼저 통과한다.
+3. 앱 권한에서 `canva:design:content:read`와 `canva:design:content:write`를 활성화한다. 저장소의 `canva-app.json`에도 동일 권한이 선언되어 있다.
+4. 1587 × 2245 비율을 확인하기 쉬운 일반 고정 크기 Canva 디자인을 열고 앱을 Preview한다. Docs와 Whiteboard 같은 unbounded surface는 대상이 아니다.
+5. `../test-input/prototype-book.md`를 앱에서 선택하고 원고 검증 결과를 확인한다.
+6. **교재 페이지 생성**을 누르면 지원되는 5개 페이지가 생성된다.
+7. 순서도가 포함된 원고도 끝까지 생성된다. 순서도 페이지에는 회색 자리와 안내 글이 놓이고, 앱 패널에 "순서도 N곳은 직접 만들어야 합니다" 목록이 나타난다.
+
+개발자 계정 등록, 앱 생성/ID 발급, 권한 승인과 실제 Canva 편집기 Preview는 사용자 계정에서만 수행할 수 있다. 이 저장소는 해당 단계를 우회하지 않는다.
+
+## SDK 구현 근거와 제한
+
+- 새 챕터 페이지는 GA `addPage`로 만들며 `dimensions`, 단색 `background`, 여러 `elements`를 한 번에 전달한다.
+- 텍스트는 `createRichtextRange`로 만들고 문단에 Wanted Sans `fontRef`, 50/30/28pt, 줄 간격 2em, 자간 0em을 적용한다. SDK `fontSize`는 디자인 px이고 편집기는 그것을 96/72로 나눈 pt로 보여 주므로, `theme/typography.ts`의 `toCanvaFontSize()`가 pt×4/3을 넘긴다(50pt → 66.67px). 근거는 1587×2245 원본 PNG 측정(28pt·줄 간격 2 본문의 줄 간격 74px = 37.3px em × 2).
+- **글꼴은 사전 조회로 판정하지 않는다.** `@canva/asset`의 `findFonts` 타입 정의에는 "Only a subset of Canva's fonts are returned"가 명시돼 있다. 즉 편집기에서 쓸 수 있는 글꼴이라도 `findFonts()` 목록에는 없을 수 있다. 목록에 없다는 이유로 생성을 막으면 오탐이므로, 앱은 후보를 순서대로 **실제 `addPage()` 호출로** 적용해 보고 처음 성공한 글꼴을 책 전체에 쓴다.
+- 순서도 내부 글꼴은 `Hakgyoansim Chilpanjiugae OTF`만 허용한다. 정확한 글꼴 검색 함수를 준비했으며 다른 글꼴로 대체하지 않는다.
+- 앱은 아래 Canva graphics ID를 규칙의 단일 기준으로 보관한다.
+
+| 역할 | Canva 요소 | graphics ID |
+| --- | --- | --- |
+| 선언 | Arrow block convex | `MAE7lCxHi8M` |
+| 입력 | Flowchart Input-Output | `MAGpWHDxa1c` |
+| 출력 | Flowchart Document | `MAGpWDtQbCc` |
+| 처리 | Flowchart Process | `MAGpWHT7x4M` |
+| 조건 | Flowchart Decision | `MAGpWETGMb4` |
+
+- 공개 Apps SDK의 asset 유형은 이미지·비디오·오디오·글꼴이며 Canva Elements 라이브러리의 graphics ID를 asset ref처럼 사용할 수 없다. 따라서 순서도에는 네이티브 소스/템플릿 복제 경로, Canva 편집기에서 사용자가 요소를 먼저 삽입하는 경로, 또는 이를 지원하는 새 공식 API가 필요하다.
+- 순서도 페이지는 생성을 막지 않는다. 앱은 필수 요소를 넣을 수 없으므로 순서도 대신 자리표시자를 놓고, 필요한 요소 이름·그래픽 ID·연결·구조별 작성법을 패널에 보고한다. `assertFlowchartLibraryAssetSupport()`는 "대체 도형을 그리지 않는다"는 원칙의 기록으로 남아 있으며 생성 경로에서는 호출하지 않는다.
+- 페이지 번호는 `parse → 분할 → 구조 페이지 삽입 → 번호 확정 → 렌더링` 파이프라인(`src/builder/plan-book.ts`)의 마지막 단계에서만 확정한다. 파싱 단계는 번호를 매기지 않으며, `BookPage` 타입에 번호 필드가 없어 그 실수가 컴파일되지 않는다.
+- 번호 계수 정책은 **본문만 계수·표시**다. `cover`, `toc`, `divider`는 순번을 소비하지 않으므로 본문 첫 페이지가 1번이다. (`UNNUMBERED_PAGE_TYPES`)
+- `addPage`로 만든 페이지 번호는 자동 `${pageNumberOnly}` 필드가 아니라 literal text다. Apps SDK로 해당 Canva 자동 필드를 새로 삽입하는 공개 API는 확인되지 않았다.
+- 원본 native chapter-opening 페이지를 복제하는 API/권한과 원본 협업 링크가 제공되지 않았으므로 헤더는 참고 PNG 기반의 근사 native 재구성이다. 정확한 template fidelity는 미검증이다.
+- Canva Apps SDK가 반환하는 font ref는 단기 사용을 전제로 하므로 영구 저장하지 않고 버튼 실행 때마다 다시 조회한다.
+
+### 글꼴 적용 순서
+
+앱은 아래 순서로 **실제 적용을 시도**한다. 각 단계는 진짜 `addPage()` 호출이며, 그 호출이 실패했을 때만 다음 단계로 넘어간다.
+
+| 순서 | 후보 | 출처 |
+| --- | --- | --- |
+| 1 | Wanted Sans | `findFonts()` 목록 |
+| 2 | Wanted Sans | 현재 디자인이 이미 쓰고 있는 글꼴의 `fontRef` |
+| 3 | Noto Sans KR | `findFonts()` 목록 / 디자인 |
+| 4 | 그 밖에 실제 조회된 한글 글꼴 | `findFonts()` 목록 / 디자인 |
+| 5 | 글꼴 미지정 | `fontRef`를 생략해 Canva 디자인 기본 글꼴 사용 |
+
+- `fontRef`는 모두 SDK가 돌려준 값만 쓴다. 글꼴 ID를 하드코딩하지 않는다.
+- 2단계는 `openDesign({ type: "all_pages" })`로 디자인의 텍스트 요소를 읽어 실제 적용된 `fontRef`를 모으고, `findFonts({ fontRefs })`로 그 글꼴의 이름과 굵기를 되묻는다. 읽기만 하며 `session.sync()`를 호출하지 않으므로 디자인은 바뀌지 않는다.
+- 글꼴 이름 비교는 앞뒤/연속 공백, 대소문자, 하이픈·언더스코어, CamelCase 내부 이름(`WantedSans`), 스타일 접미사(`Wanted Sans Regular`, `Wanted Sans SemiBold Italic`)를 모두 같은 패밀리로 본다.
+- 굵기는 그 글꼴이 실제로 제공하는 목록에서 고른다. regular와 bold가 둘 다 없다는 이유로 글꼴을 포기하지 않는다.
+- 페이지 내용 과밀처럼 **글꼴과 무관한 실패**는 대체 글꼴로 재시도하지 않고 그대로 오류를 올린다.
+- 확정된 글꼴 하나를 모든 페이지 유형이 공유한다. 페이지 유형마다 글꼴이 갈라지는 경로는 없다.
+- 앱 패널은 실제 적용된 글꼴, Wanted Sans 적용 성공 여부, 대체 글꼴 이름과 정확한 사유, 실패한 SDK 호출과 오류 메시지를 함께 표시한다.
+
+### 페이지 추가 속도 제한 대응
+
+12페이지 원고에서 `[rate_limited]: Encountered an error while adding page: Add page rate limit exceeded.`가 발생했다. 원인은 원고가 아니라 **호출 방식**이었다. 이전 구현은 첫 페이지 이후의 모든 페이지를 간격 없이 연속으로 `addPage()`에 보냈고, Canva가 그 속도를 거부하면 한 번의 실패로 전체 생성이 중단됐다.
+
+현재 구현은 다음과 같다. 수치는 모두 `src/builder/retry-policy.ts`의 `PAGE_CREATION_POLICY` 한 곳에 있다.
+
+| 항목 | 값 | 상수 |
+| --- | --- | --- |
+| 페이지 사이 기본 요청 간격 | 1,200ms | `interPageDelayMs` |
+| 1차 재시도 지연 | 1,000ms | `retryBaseDelayMs` |
+| 백오프 배수 | 2배 (1초 → 2초 → 4초 → 8초) | `retryBackoffFactor` |
+| 재시도 지연 상한 | 16,000ms | `retryMaxDelayMs` |
+| 페이지당 최대 재시도 | 5회 | `maxRetriesPerPage` |
+| 재시도 무작위 지연 | 계산된 지연의 0~25% | `retryJitterRatio` |
+| Canva가 알려 준 대기 시간 상한 | 60,000ms | `maxHonoredRetryAfterMs` |
+
+- 페이지는 `SequentialPageWriter`(`src/builder/page-writer.ts`)가 **한 번에 하나씩** 보낸다. 앞 요청의 Promise가 끝나기 전에 다음 요청이 시작되면 `ConcurrentPageWriteError`로 즉시 막는다.
+- 설치된 `@canva/error` 2.2.1의 `CanvaError`는 `code`와 `message`만 선언한다. **타입이 보장된 Retry-After 필드는 없다.** 그래서 `extractRetryAfterMs()`는 런타임 객체에 그런 값이 실제로 실려 온 경우에만 방어적으로 읽고, 없으면 지수 백오프를 쓴다. 존재하지 않는 API를 호출하지 않는다.
+- 재시도 대상은 `rate_limited`, `internal_error`, `timeout`뿐이다. `permission_denied`, `missing_permission`, `not_allowed`, `unsupported_surface`, `unsupported_page_type`, `bad_request`, `quota_exceeded`, `user_offline`은 몇 초 기다린다고 해결되지 않으므로 즉시 중단하고 원인을 표시한다. 원고 검증 오류는 Canva 호출 이전 단계에서 구분한다.
+- 오류 문구는 한국어로 보여 주되 Canva가 준 **오류 코드와 원문 메시지를 그대로 함께** 남긴다(`src/builder/canva-errors.ts`).
+
+### 중복 페이지 방지
+
+`addPage()`는 페이지와 그 안의 모든 요소를 한 번의 호출로 만든다. 요소만 따로 재시도하는 공개 API는 없으므로, 앱은 페이지별 상태(`대기 → 페이지 추가 중 → 페이지 추가 완료 → 요소 배치 중 → 생성 완료`, 실패 시 `재시도 대기` 또는 `최종 실패`)를 기록해 **한 번이라도 추가된 페이지에는 다시 `addPage()`를 보내지 않는다.**
+
+- 요청이 실패하면 `getDesignMetadata()`의 페이지 수로 "그 실패가 페이지를 남겼는지"를 확인한다. 남았으면 재시도하지 않고 그 사실을 표시한다.
+- 속도 제한은 요청이 거부된 것이라 페이지가 남지 않는다. 그 밖의 일시적 오류에서 페이지 잔존 여부를 확인할 수 없으면, 중복을 만들지 않기 위해 재시도하지 않고 멈춘다.
+- 실행이 중간에 멈추면 만들어진 페이지 수를 숨기지 않고 "전체 N페이지 중 M페이지까지 생성됨"으로 표시한다.
+- 같은 원고로 버튼을 다시 누르면 앱이 임의로 생성하지 않고 **이어서 생성 / 처음부터 다시 생성(중복 경고) / 취소**를 묻는다. 이어서 생성은 이번 앱 세션이 기억한 생성 기록을 쓰고, `addPage()`가 돌려준 `PageId`가 아직 디자인에 남아 있는지 `getDesignMetadata()`로 확인해 결과를 함께 알린다.
+- **되돌리기(rollback)는 구현하지 않았다.** 설치된 `@canva/design` 2.13.0에는 페이지를 삭제하는 API가 없다. `openDesign({ type: "all_pages" })`의 `pageRefs`는 읽기 전용 `ReadableList<PageRef>`이며 `PageRef`에는 id조차 없다. 편집 가능한 목록은 페이지 안의 `elements`뿐이다. 따라서 앱은 자신이 추가한 페이지를 지울 수 없고, 그 사실을 사용자에게 그대로 알린다.
+
+### 검토한 SDK 기능
+
+| 기능 | 1차 프로토타입 상태 |
+| --- | --- |
+| 새 페이지 및 여러 요소 추가 | `addPage`로 챕터 오프닝에 구현 |
+| Text/Richtext | Richtext로 구현 |
+| 글꼴 검색과 `fontRef` 적용 | `findFonts`로 구현 |
+| 챕터 프레임·원 | native `shape` path로 구현 |
+| 지정 Canva 플로차트 요소 삽입 | 공개 graphics-ID 삽입 API 미확인, 엄격 중단 |
+| 순서도 선·connector | 대체 벡터를 제거했으며 생성하지 않음. 자리표시자만 놓고 사용자가 Canva에서 직접 잇는다 |
+| 요소 그룹화 | 챕터 요소에 native `group` 사용 |
+| 페이지 목록·개수 조회 | `getDesignMetadata().pageMetadata`로 구현 (순서 미보장, `id`는 선택 항목) |
+| 페이지 삭제·되돌리기 | 공개 API 없음. 구현하지 않고 사용자에게 알림 |
+| 페이지 메타데이터 저장 | 앱이 임의 메타데이터를 페이지에 붙이는 공개 API 없음. 세션 내 기록만 사용 |
+
+공식 문서: [addPage](https://www.canva.dev/docs/apps/api/latest/design-add-page/), [assets](https://www.canva.dev/docs/apps/uploading-assets/), [elements](https://www.canva.dev/docs/apps/elements/), [fonts](https://www.canva.dev/docs/apps/fonts/), [Design Editing API](https://www.canva.dev/docs/apps/design-editing/).
+
+## 자동 테스트 범위
+
+- Markdown Front Matter와 page 컨테이너 파싱
+- 5개 구현 페이지 타입의 구조 변환
+- 중복 page ID와 실습 오프닝의 잘못된 하단 블록 조합 검증
+- 원고 순서에 따른 페이지 번호 할당
+- BookSpec fixture 및 연결 대상 검증
+- 선언/입력/출력/처리/조건 역할과 제어 구조 데이터 모델
+- 1587 × 2245, 50/30/28, 2em/0em 테마 값
+- 순서도 자리표시자: 코드 블록 아래 글(마무리) 보존, `height` 검증, 가장 긴 경로로 높이 추정(되돌아가는 연결 포함), 자리 도형이 중립 회색 하나뿐이고 역할별 색·모양을 쓰지 않음, 안내 글에 모든 노드·연결 표기, 자리가 작으면 글자 크기가 아니라 안내 글을 줄임, 안전 영역 준수, 생성 후 보고 목록(필수 요소 이름·ID), 순서도 없는 원고의 결과 불변
+- 새 디자인의 빈 첫 페이지 재사용: 조건이 어긋나면 디자인을 건드리지 않음, 한 번의 sync, 요소 순서·색·드롭 가능 여부 변환, sync 오류 뒤 중복 방지, 이어서 생성에서는 시도하지 않음, 진행 표시
+- 이미지 자리표시자(`::image{...}`): 속성·위치 검증과 원고 행 번호, 선언한 비율대로의 자리 크기, 페이지 경계에서 나뉘지 않음, 연속 페이지를 포함한 안전 영역 준수, 생성 후 보고 목록, 이미지 없는 원고의 배치 불변
+- 사용자가 확정한 순서도 색상, 반복문 내부선 굵기 10, 미확정 connector 굵기 `null`
+- 필수 Canva graphics ID 5개 고정
+- 미지원 환경에서 임의 벡터 대체 없이 중단하는 guard
+- 글꼴 이름 비교(공백·대소문자·하이픈·CamelCase·스타일 접미사·내부 이름)
+- 제공 굵기에 따른 regular/bold 선택과 굵기가 하나뿐인 글꼴 처리
+- 후보 순서: Wanted Sans → Noto Sans KR → 그 밖의 한글 글꼴 → 글꼴 미지정
+- `findFonts()`가 Wanted Sans를 돌려주지 않아도 실제 적용을 시도하는 동작
+- Wanted Sans 실제 적용 성공 시 대체 글꼴을 쓰지 않는 동작
+- Wanted Sans 실제 적용 실패 시에만 Noto Sans KR로 대체하는 동작
+- 글꼴과 무관한 실패에서 대체를 시도하지 않는 동작
+- 5개 페이지 유형 전부에 같은 글꼴이 적용되는지
+- 디자인의 텍스트 요소에서 `fontRef`를 수집하고 실패를 삼키지 않는지
+- `Hakgyoansim Chilpanjiugae OTF`의 정확한 글꼴 검색
+- 12페이지 원고(`prototype-book-v2.md`)를 원고 순서대로 하나씩 생성하는지
+- `addPage()` 요청이 동시에 두 개 이상 실행되지 않는지, 요청 사이 간격이 유지되는지
+- `rate_limited` 발생 후 지수 백오프(1초 → 2초 → 4초)와 무작위 지연으로 재시도해 성공하는지
+- Canva가 재시도 시각을 실어 보내면 그 값을 백오프보다 먼저 쓰는지
+- 최대 재시도 횟수를 넘기면 정확히 그 횟수에서 멈추고 전체/성공/실패 페이지와 Canva 오류 코드·원문을 보고하는지
+- 재시도 중 앞 페이지가 다시 만들어지지 않는지, 실패했지만 남은 페이지를 다시 보내지 않는지
+- 이어서 생성이 이미 만든 페이지를 건너뛰는지
+- 첫 페이지의 속도 제한을 글꼴 실패로 오해해 대체 글꼴로 넘어가지 않는지
+- 속도 제한·일시 오류와 권한·미지원·원고 검증 오류를 구분하는지
+- 생성 중 버튼이 비활성화되는지(`isGenerateDisabled`), 진행 문구가 페이지마다 정확히 갱신되는지
+- 챕터 도형 path 검증, TypeScript 타입 검사, ESLint, production build
+
+자동 테스트는 Canva 편집기의 실제 렌더링, 계정별 글꼴 노출, 네이티브 템플릿 복제 가능 여부를 통과로 판정하지 않는다.
+
+## 현재 Canva 수동 검증 체크리스트
+
+- [ ] Markdown 파일을 선택하면 제목, 페이지 수, 페이지 타입이 표시된다.
+- [ ] Canva에서 구현된 5개 페이지 타입이 원고 순서대로 생성된다.
+- [ ] 챕터 텍스트에 Wanted Sans regular와 bold가 올바르게 적용된다.
+- [ ] 앱 패널에 "Wanted Sans 적용 성공"과 실제 적용된 글꼴 이름이 표시된다.
+- [ ] 생성된 모든 페이지를 Canva에서 선택했을 때 글꼴 이름이 Wanted Sans로 보인다.
+- [ ] 대체 글꼴이 쓰였다면 패널에 표시된 대체 사유와 실패한 SDK 호출 메시지가 실제 상황과 맞는다.
+- [ ] 글꼴 적용 시도가 실패한 경우, 실패한 시도 때문에 빈 페이지나 중복 페이지가 디자인에 남지 않는다.
+- [ ] 글자, 프레임, 번호가 개별 편집 가능하다.
+- [ ] 페이지 크기와 비율이 맞고 텍스트가 잘리거나 겹치지 않는다.
+- [ ] 개념 카드, 비교표, 실습 카드, 체크리스트가 개별 편집 가능하다.
+- [ ] 순서도가 포함된 원고(`../test-input/flowchart-placeholder.md`)가 끝까지 생성되고, 순서도 페이지마다 회색 자리 하나와 안내 글 하나만 놓인다(순서도처럼 보이는 도형·선이 없다).
+- [ ] 앱 패널의 "순서도 N곳은 직접 만들어야 합니다" 목록에 쪽번호, 구조별 작성법, 노드별 필수 요소 이름과 그래픽 ID, 연결이 보인다.
+- [ ] 안내대로 Canva의 요소 → 도형 → 순서도 도형에서 요소를 넣어 순서도를 만들 수 있고, 회색 자리와 안내 글을 지우면 자리표시자의 흔적이 남지 않는다.
+- [ ] `height="900"`을 적은 페이지는 자리 높이가 900px이고, 적지 않은 페이지는 "(도형 수로 추정)"이 표시된다.
+- [ ] `toc: auto` 원고는 미지원 오류를 표시하고 페이지를 만들지 않는다.
+- [ ] `../test-input/prototype-book-v2.md`(12페이지)가 속도 제한 오류 없이 끝까지 생성된다.
+- [ ] 생성 중 앱 패널에 "전체 12페이지 중 N페이지 생성 중"과 진행 막대가 보인다.
+- [ ] 생성 중에는 **교재 페이지 생성** 버튼과 파일 선택이 비활성화된다.
+- [ ] 속도 제한이 걸리면 "Canva 요청 제한으로 N초 후 다시 시도합니다"가 보이고, 실제로 그 뒤 생성이 이어진다.
+- [ ] 생성이 끝나면 "12개 Canva 페이지를 생성했습니다"가 표시되고 디자인의 페이지 수가 실제로 12페이지 늘어난다.
+- [ ] 중간에 실패하면 표시된 "전체 N페이지 중 M페이지까지 생성됨"이 Canva의 실제 페이지 수와 일치한다.
+- [ ] 실패 후 버튼을 다시 누르면 이어서 생성/처음부터 다시 생성 선택이 나타나고, "이어서 생성"을 고르면 앞 페이지가 중복되지 않는다.
+- [ ] "처음부터 다시 생성"을 고르면 경고대로 페이지가 중복 추가된다(앱은 되돌릴 수 없다).
+- [ ] 1,200ms 간격에서도 속도 제한이 반복되면 `PAGE_CREATION_POLICY.interPageDelayMs`를 올려 재확인한다.
+
+## 맨 앞 빈 페이지 재사용
+
+Canva의 새 디자인은 빈 페이지 한 장으로 시작하고 `addPage()`는 그 뒤에만 페이지를 붙인다. @canva/design 2.13.0에는 페이지를 지우는 API가 없어(`PageRefList`는 읽기 전용) 예전에는 맨 앞에 빈 페이지가 항상 남았다. 지금은 교재 첫 장을 그 빈 페이지에 그려 넣는다(`src/builder/blank-first-page.ts`).
+
+- 조건: 디자인에 페이지가 정확히 한 장이고, 그 페이지가 고정 크기·잠기지 않음·요소 0개·1587 × 2245일 때만. 하나라도 어긋나면 디자인을 건드리지 않고 예전처럼 `addPage()`로 첫 장을 만든다.
+- 방법: Design Editing API(`openDesign({ type: "current_page" })`)로 모든 요소를 한 번의 `sync()`에 넣는다. 배경은 `setCurrentPageBackground()`로 맞춘다. 글꼴 사다리는 그대로다. 빈 페이지 채우기가 실패하면 같은 글꼴로 `addPage()`를 시도하고, 그 결과로 글꼴을 판정한다.
+- 제한: 편집 API로는 페이지 제목을 정할 수 없어, 재사용한 첫 장에는 Canva 페이지 제목이 붙지 않는다. 이 경우 디자인의 페이지 수는 원고의 물리 페이지 수보다 한 장 적게 늘어난다.
+
+수동 확인(자동 테스트는 대역으로만 검증했다. 실제 편집 API 호출은 Canva에서만 확인할 수 있다):
+
+- [ ] 1587 × 2245 새 디자인(빈 페이지 1장)에서 생성하면 맨 앞에 빈 페이지가 남지 않고 1쪽이 교재 첫 장이다.
+- [ ] 그 첫 장의 글꼴·크기·색·요소 위치가 `addPage()`로 만든 같은 페이지와 같다(다른 디자인에서 페이지를 하나 먼저 추가해 둔 뒤 생성한 결과와 비교).
+- [ ] 첫 장의 요소가 개별 편집 가능하고, 이미지 자리에는 이미지를 끌어다 놓을 수 있다.
+- [ ] 크기가 다른 디자인에서는 "맨 앞의 빈 페이지를 첫 장으로 쓰지 못했습니다"와 두 크기가 표시되고, 첫 장은 새 페이지로 정상 추가된다.
+- [ ] 이미 페이지가 여러 장인 디자인과 "이어서 생성"은 예전과 똑같이 동작한다.
+
+## 이미지 자리표시자 수동 검증
+
+자동 테스트는 배치(자리 크기, 분할, 안전 영역)와 원고 검증만 확인한다. 아래는 실제 Canva에서만 확인할 수 있다. **이미지가 들어간 원고를 처음 쓰기 전에 `../test-input/image-smoke.md`(1페이지)로 먼저 확인한다.** 자리 도형은 `fill.dropTarget: true`에 색을 함께 지정하는데, 이 조합을 Canva가 받는지는 SDK 타입으로만 확인했고 실제 호출로는 아직 검증하지 못했다.
+
+- [ ] `image-smoke.md`가 오류 없이 1페이지를 만든다. (`addPage`가 거절하면 이 항목에서 멈추고 오류 문구를 기록한다.)
+- [ ] 회색 상자가 본문 너비(1190px), 16:9로 놓이고 상자 안에 파일명·비율·설명 라벨이 보인다.
+- [ ] 회색 상자는 `fill.dropTarget: true`인 경로 도형이다. Canva에서 크기는 바꿀 수 있지만 가로세로 비율은 바꿀 수 없다(단색 `rect`로 바꾸면 비율은 바뀌지만 끌어다 놓기 대상이 아니게 되어 채택하지 않았다). 비율은 원고의 `ratio`로 정한다.
+- [ ] 이미지 파일을 상자 위로 끌어다 놓으면 상자 크기 그대로 이미지가 채워진다. 라벨 글 위가 아니라 상자의 빈 부분에 놓아도 된다.
+- [ ] 이미지를 넣은 뒤 캡션과 아래 문단의 위치가 1px도 움직이지 않는다.
+- [ ] 라벨 글을 지우면 자리표시자의 흔적이 남지 않는다.
+- [ ] 생성이 끝나면 앱 패널에 "이미지 자리 N곳을 비워 두었습니다"와 쪽번호·파일 경로·픽셀 크기 목록이 보인다.
+- [ ] `../test-input/image-placeholder.md`에서 세로로 긴 자리(9:16)가 지면 안으로 줄어들고, 연속 페이지의 자리가 쪽번호를 덮지 않는다.
+- [ ] 이미지가 없는 기존 원고(`prototype-book.md`, `prototype-book-v2.md`)의 결과가 이전과 같다.
+
+## 사용자가 채운 순서도 검증
+
+앱은 자리만 비워 두므로, 아래 항목은 사용자가 Canva에서 순서도를 만든 뒤 확인한다.
+
+- [ ] 역할별 요소의 graphics ID가 위 표와 정확히 일치한다.
+- [ ] 선언·입력·출력·처리·조건, 반복문 색상과 스트로크 색상이 스킬 규칙과 일치한다.
+- [ ] 모든 순서도 내부 글꼴이 `Hakgyoansim Chilpanjiugae OTF`다.
+- [ ] if/else는 Process 컨테이너와 좌측 상단 Decision 오버레이를 사용한다.
+- [ ] else-if가 있으면 조건마다 Decision만 사용하고 조건용 Process 컨테이너를 쓰지 않는다.
+- [ ] 반복문은 Process 외곽과 굵기 10의 남색 내부 실선으로 조건/본문을 나눈다.
+- [ ] 연결선은 회색 `#737373`이고 직선 또는 곡선이며 끝점과 분기 라벨이 정확하다.
+- [ ] 일반 연결선 굵기는 Canva에서 확인된 뒤에만 고정한다.
+- [ ] 모든 순서도 요소, 내부선, 연결선, 글자가 개별 편집 가능하다.
+- [ ] `assets/page-examples/flowchart1.png`, `flowchart2.png`와 시각적으로 비교한다.

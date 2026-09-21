@@ -1,0 +1,211 @@
+# Structured Markdown manuscript format
+
+Use this format for manuscripts that will be parsed by the Coala Book Builder Canva app.
+
+## Core rules
+
+- Save the manuscript as UTF-8 Markdown.
+- Start with YAML Front Matter.
+- Put every intended Canva page inside one `:::page{...}` container.
+- Give every page a stable, unique `id`.
+- Use kebab-case page types.
+- Do not write literal page numbers. Set `numbering: auto`.
+- Do not put colors, coordinates, font sizes, or other visual styling in the manuscript.
+- Use relative asset paths under `assets/`. When assets are required, package `book.md` and `assets/` together.
+
+## Front Matter
+
+```yaml
+---
+schema_version: 1
+title: AI와 함께하는 앱 개발
+subtitle: 생성형 AI와 Python GUI 프로젝트
+learner_level: 대학 초급
+language: ko
+canvas: coala-portrait
+numbering: auto
+toc: none
+institution: 삼육대학교
+assets_dir: ./assets
+---
+```
+
+Currently supported values:
+
+- `schema_version: 1`
+- `language: ko`
+- `canvas: coala-portrait`
+- `numbering: auto | none`
+- `toc: auto | none`; `auto` is reserved until automatic contents rendering is implemented
+
+## Implemented page templates
+
+### Chapter opening
+
+```markdown
+:::page{type="chapter-opening" id="chapter-01" chapter="1"}
+# AI 디지털 리터러시
+## AI와 함께하는 디지털 시대
+
+### 학습 목표
+
+- 생성형 AI의 개념을 설명할 수 있다.
+- AI가 제공한 정보를 검토할 수 있다.
+
+### 생성형 AI란 무엇일까?
+
+생성형 AI는 사용자의 요청에 따라 새로운 결과물을 만드는 인공지능입니다.
+:::
+```
+
+### Concept
+
+Use `layout="basic"` for vertically stacked sections or `layout="cards"` for up to four cards.
+
+```markdown
+:::page{type="concept" id="data-types" layout="cards"}
+# 데이터의 종류
+
+입력 데이터의 유형을 살펴봅시다.
+
+## 문자 데이터
+
+- 이름
+- 증상 설명
+
+## 숫자 데이터
+
+- 나이
+- 체온
+
+> [!KEY_POINT]
+> 앱의 목적에 따라 필요한 입력 데이터가 달라집니다.
+:::
+```
+
+### Comparison
+
+Use a standard Markdown table with two or three columns and no more than five body rows.
+
+```markdown
+:::page{type="comparison" id="prompt-comparison"}
+# 좋은 질문 비교
+
+| 모호한 질문 | 구체적인 질문 |
+|---|---|
+| 추천해줘 | 대학생을 위한 공부 계획을 추천해줘 |
+
+> [!TIP]
+> 대상과 조건을 함께 적어보세요.
+:::
+```
+
+### Practice opening
+
+The page can contain one Tip or one checklist, not both.
+
+```markdown
+:::page{type="practice-opening" id="practice-002-1" practice="002-1" practice-kind="프롬프트 실습" platform="알고플로에서 실습하기"}
+# 어떤 질문이 더 좋은 답을 만들까?
+
+짧은 질문과 구체적인 질문의 결과를 비교해봅시다.
+
+> [!TIP]
+> 답변이 아쉽다면 조건을 추가해보세요.
+:::
+```
+
+### Practice checklist
+
+```markdown
+:::page{type="practice-checklist" id="practice-002-1-objectives"}
+# 실습 목표
+
+- [ ] 질문 방식의 차이를 확인할 수 있다.
+- [ ] 프롬프트를 구체적으로 수정할 수 있다.
+:::
+```
+
+### Flowchart
+
+The parser accepts the semantic flowchart structure below. The app does not draw the flowchart: the required native Canva library elements cannot be inserted through the public Apps SDK, and lookalike shapes are forbidden. It generates the page with a reserved placeholder instead, and a person builds the flowchart in the Canva editor. See "Flowchart placeholders in the Coala Book Builder app" in `flowcharts.md`.
+
+- Text between the page title and the ```` ```flowchart ```` block is the introduction. Paragraph breaks are kept.
+- Text **below** the block is placed under the placeholder as the conclusion.
+- The optional page attribute `height="900"` sets the placeholder height in pixels, as an integer from 300 to 1800. Without it the height is estimated from the number of nodes on the longest route. Set it when the intended layout is wider than it is tall, or when the estimate leaves too little room for the text below.
+- `control_structure` (`linear`, `if-else`, `if-else-if`, or `loop`) selects the construction rule shown to the person who builds the flowchart.
+- Image placeholders and callouts are not supported on a `flowchart` page.
+
+````markdown
+:::page{type="flowchart" id="age-check"}
+# 나이에 따른 결과 분기
+
+```flowchart
+control_structure: if-else
+nodes:
+  - id: age
+    role: input
+    text: 나이 입력
+  - id: condition
+    role: decision
+    text: 나이가 20세 이상인가?
+  - id: adult
+    role: output
+    text: 성인입니다.
+connections:
+  - from: age
+    to: condition
+  - from: condition
+    to: adult
+    label: YES
+```
+:::
+````
+
+## Image placeholders
+
+Declare an image where it belongs in the manuscript, even when the file does not exist yet. The app reserves the exact space, marks it, and leaves it empty. The image is added later in Canva by dragging it onto the reserved box; nothing else on the page moves.
+
+```markdown
+::image{src="assets/ch01/step-01.png" alt="새 프로젝트 만들기 창" ratio="16:9" caption="그림 1-1 새 프로젝트 만들기"}
+```
+
+Write the directive as **one line with no closing line**. A line containing only `:::` closes the page container, so a fenced block form cannot be used.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `src` | yes | Planned file path, relative to the manuscript, under `assets/`. The file may not exist yet. URLs, absolute paths, and `..` are rejected. |
+| `alt` | yes | What the image shows. Used in the placeholder label and in the post-generation list. |
+| `ratio` | no | Width to height, as `16:9` or a decimal such as `1.5`. Allowed range 1:4 to 4:1. Defaults to `16:9`, and the post-generation list flags every placeholder that relied on the default. |
+| `width` | no | `text` (default, body text width), `full` (full content width, same as cards and tables), or `half` (half of the text width, centered). |
+| `caption` | no | A real caption placed under the box. It stays after the image is added. |
+
+Rules:
+
+- `ratio` decides the reserved height, and Canva fills the box by cropping. **Declare the ratio of the final image.** A different ratio means the image is cropped.
+- The box keeps its aspect ratio in the Canva editor: it can be scaled, but not stretched to another ratio. To change the ratio, change `ratio` in the manuscript and generate again, or crop the image to the box.
+- A placeholder is never split across pages. One that is taller than a page is scaled down with its ratio preserved, and the post-generation list says so.
+- Allowed positions: anywhere under the page title of a `concept` page with `layout="basic"`, and in the body under the concept subsection heading of a `chapter-opening` page.
+- Rejected positions, with the manuscript row number: `concept` pages with `layout="cards"`, `practice-opening`, `practice-checklist`, `comparison`, and `flowchart` pages, inside a `>` callout, above a `concept` page title, and among the learning objectives of a `chapter-opening` page. Move the image to a following `concept` page instead.
+- Do not use a placeholder for a flowchart. Flowcharts follow `flowcharts.md`.
+
+After generation the app lists every placeholder with its page number, planned file, reserved pixel size, and ratio. Preparing each image at that pixel size avoids cropping.
+
+## Page templates and content blocks
+
+Treat `tip`, `key-point`, tables, checklists, images, code, and prompt-response content as blocks inside a page rather than independent page templates. Add new page templates only when the whole-page arrangement changes.
+
+Planned page templates include `cover`, `toc`, `divider`, `step-process`, `screenshot-guide`, `chart-result`, `before-after`, and `final-submission`.
+
+## Validation behavior
+
+The parser must reject the complete manuscript before Canva writes begin when:
+
+- Front Matter is missing or malformed;
+- content exists outside a page container;
+- a page type, layout, or required attribute is unsupported;
+- page IDs are duplicated;
+- a required heading, table, checklist, or flowchart field is missing;
+- a flowchart `height` is not an integer from 300 to 1800;
+- an image placeholder is malformed, uses an unsupported attribute, or sits in a position where it cannot be laid out;
+- a practice opening contains both a Tip and an objective checklist.

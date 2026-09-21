@@ -1,0 +1,43 @@
+{
+  "title": "AI와 함께하는 앱 개발 / 업데이트 수정본(삼육_최종)",
+  "design_id": "DAHRZrtJw9U",
+  "page_count": 102,
+  "design_type": "unknown",
+  "editor_surface_label": "Poster",
+  "canvas_width_px": 1587,
+  "canvas_height_px": 2245,
+  "canvas_size_source": "Confirmed by the user from Canva's direct PNG download dialog. The Canva API metadata reports 1588 x 2246 px for the same design; both values are correct for their own surface, and the PNG export size is treated as canonical here.",
+  "reference_pdf_included": false,
+  "reference_page_images_included": true,
+  "reference_page_resolution_px": "1587 x 2245",
+  "included_reference_pages": [
+    "assets/page-examples/cover.png",
+    "assets/page-examples/table-of-contents.png",
+    "assets/page-examples/section-divider.png",
+    "assets/page-examples/chapter-opening.png",
+    "assets/page-examples/data-visualization.png",
+    "assets/page-examples/prompt-comparison.png",
+    "assets/page-examples/flowchart1.png",
+    "assets/page-examples/flowchart2.png",
+    "assets/page-examples/practice-opening1.png",
+    "assets/page-examples/practice-opening2.png",
+    "assets/page-examples/practice-objectives.png",
+    "assets/page-examples/step-by-step-guide.png",
+    "assets/page-examples/process-steps.png",
+    "assets/page-examples/ai-prompt-response.png",
+    "assets/page-examples/core-summary-box.png",
+    "assets/page-examples/caution-box.png",
+    "assets/page-examples/before-after.png",
+    "assets/page-examples/major-extension-table.png",
+    "assets/page-examples/project-checklist.png",
+    "assets/page-examples/portfolio-summary.png"
+  ],
+  "reference_page_notes": {
+    "resolution": "All retained page examples are full-resolution native Canva PNG exports at 1587 x 2245 px, not reduced screenshots. They are acceptable evidence for typography and color verification.",
+    "page_type_mapping": "See the page-type reference table in references/page-types.md.",
+    "assets/page-examples/cover.png": "Contains the reference institution's logo and the producer mark. Retained for layout reference only. Replace both marks with authorized artwork for any new book; never reuse this institution's branding for a different institution.",
+    "assets/page-examples/caution-box.png": "Despite its filename, this page shows a key-summary box, not a caution box. No true caution-box example is retained yet."
+  },
+  "typography_source": "../references/style-guide.md",
+  "notes": "The Canva design ID is retained for provenance without an edit or collaboration URL. Do not edit the source without explicit user authorization. The style guide is the single source of truth for typography and color."
+}
