@@ -183,7 +183,7 @@ Write the directive as **one line with no closing line**. A line containing only
 Rules:
 
 - `ratio` decides the reserved height, and Canva fills the box by cropping. **Declare the ratio of the final image.** A different ratio means the image is cropped.
-- The box keeps its aspect ratio in the Canva editor: it can be scaled, but not stretched to another ratio. To change the ratio, change `ratio` in the manuscript and generate again, or crop the image to the box.
+- The Canva editor itself can scale the box but cannot stretch it to another ratio. When the final image turns out to have a different ratio, change the box with the app's **이미지 자리 비율 바꾸기** panel before adding the image (see `image-guidelines.md`). The manuscript `ratio` still decides how much space is reserved when the book is generated, so set it as accurately as you can.
 - A placeholder is never split across pages. One that is taller than a page is scaled down with its ratio preserved, and the post-generation list says so.
 - Allowed positions: anywhere under the page title of a `concept` page with `layout="basic"`, and in the body under the concept subsection heading of a `chapter-opening` page.
 - Rejected positions, with the manuscript row number: `concept` pages with `layout="cards"`, `practice-opening`, `practice-checklist`, `comparison`, and `flowchart` pages, inside a `>` callout, above a `concept` page title, and among the learning objectives of a `chapter-opening` page. Move the image to a following `concept` page instead.

@@ -51,7 +51,8 @@ export function isImageDirectiveLine(line: string): boolean {
   return DIRECTIVE_START.test(line);
 }
 
-function parseRatio(value: string): number {
+/** `16:9` 또는 `1.5` 형식의 비율을 가로 ÷ 세로로 읽는다. 1:4에서 4:1까지. */
+export function parseRatio(value: string): number {
   const pair = value.match(/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/);
   const ratio = pair
     ? Number(pair[1]) / Number(pair[2])

@@ -2,18 +2,27 @@ import { useFeatureSupport } from "@canva/app-hooks";
 import {
   Alert,
   Button,
+  Column,
+  Columns,
   FileInput,
   ProgressBar,
   Rows,
+  Select,
   Text,
+  TextInput,
   Title,
 } from "@canva/app-ui-kit";
-import { addPage } from "@canva/design";
-import { useState } from "react";
+import { addPage, openDesign, selection } from "@canva/design";
+import { useCallback, useEffect, useState } from "react";
 import * as styles from "styles/components.css";
 import { createBook, BookGenerationFailedError } from "./builder/create-book";
 import type { CreateBookResult } from "./builder/create-book";
 import { findMissingPageIds } from "./builder/design-pages";
+import type { ImagePlaceholderInfo } from "./builder/placeholder-ratio";
+import {
+  changeImagePlaceholderRatio,
+  listImagePlaceholders,
+} from "./builder/placeholder-ratio";
 import type { FontAttemptFailure } from "./builder/font-application";
 import { FontApplicationFailedError } from "./builder/font-application";
 import type {
@@ -31,6 +40,7 @@ import {
   describeProgress,
   isGenerateDisabled,
 } from "./builder/generation-state";
+import { parseRatio } from "./parser/image-directive";
 import { parseBookMarkdown } from "./parser/markdown-book";
 import { coalaTheme } from "./theme/coala-theme";
 import { BOOK_FONT_FAMILY } from "./theme/font-resolver";
@@ -93,7 +103,8 @@ function FontReport({ result }: { result: CreateBookResult }) {
           {font.applied.fontRef ? ` (fontRef ${font.applied.fontRef})` : ""}
         </Text>
         <Text size="small">
-          굵기: 본문 {font.applied.regularWeight} · 강조 {font.applied.boldWeight}
+          굵기: 본문 {font.applied.regularWeight} · 강조{" "}
+          {font.applied.boldWeight}
         </Text>
         {!font.usedWantedSans && (
           <Text size="small" variant="bold">
@@ -189,9 +200,9 @@ function PendingFlowchartsReport({ result }: { result: CreateBookResult }) {
           만들고, 끝나면 회색 상자와 그 안의 안내 글을 지워 주세요.
         </Text>
         <Text size="small" tone="secondary">
-          순서도 안의 글꼴은 {coalaTheme.flowchart.fontFamily}, 연결선은 Canva 기본 선
-          또는 커넥터에 회색 #737373입니다. 순서도가 자리보다 크면 아래 글을
-          직접 옮겨 주세요.
+          순서도 안의 글꼴은 {coalaTheme.flowchart.fontFamily}, 연결선은 Canva
+          기본 선 또는 커넥터에 회색 #737373입니다. 순서도가 자리보다 크면 아래
+          글을 직접 옮겨 주세요.
         </Text>
         {pendingFlowcharts.map((flowchart, index) => (
           <Rows key={`${flowchart.designPage}-${index}`} spacing="0.5u">
@@ -209,8 +220,8 @@ function PendingFlowchartsReport({ result }: { result: CreateBookResult }) {
             )}
             {flowchart.nodes.map((node) => (
               <Text key={node.number} size="small" tone="secondary">
-                {node.number}. [{node.roleLabel}] {node.text} — {node.elementName}{" "}
-                ({node.elementId})
+                {node.number}. [{node.roleLabel}] {node.text} —{" "}
+                {node.elementName} ({node.elementId})
               </Text>
             ))}
             <Text size="small" tone="secondary">
@@ -229,6 +240,217 @@ function PendingFlowchartsReport({ result }: { result: CreateBookResult }) {
         ))}
       </Rows>
     </Alert>
+  );
+}
+
+/** 자주 쓰는 비율. 가로로 긴 것부터. */
+const RATIO_PRESETS = ["16:9", "3:2", "4:3", "1:1", "3:4", "9:16"] as const;
+
+/** 목록에 보여 줄 자리 이름. 안내 글의 파일 줄이 있으면 그것을 쓴다. */
+function placeholderName(placeholder: ImagePlaceholderInfo): string {
+  const lines = placeholder.labelText?.split("\n") ?? [];
+  const named = lines.find((line) => line.includes(" · ")) ?? lines[0];
+  return `${placeholder.index + 1}번째 · ${
+    named ?? `${placeholder.width}×${placeholder.height}px`
+  }`;
+}
+
+/**
+ * 이미지 자리의 가로세로 비율 바꾸기.
+ *
+ * Canva 편집기에서는 이미지 자리(끌어다 놓기 대상 도형)의 비율을 바꿀 수 없어
+ * 앱이 대신 바꾼다. 선택 API는 도형 선택을 알려 주지 않으므로, 자리 가운데의
+ * 안내 글(richtext)이 선택되면 그 글로 자리를 찾는다. 회색 빈 부분을 눌렀을
+ * 때를 위해 현재 페이지의 자리 목록에서 고를 수도 있다.
+ */
+function ImagePlaceholderRatioPanel() {
+  const [placeholders, setPlaceholders] = useState<ImagePlaceholderInfo[]>([]);
+  const [target, setTarget] = useState<number>();
+  const [pickedByClick, setPickedByClick] = useState(false);
+  const [custom, setCustom] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{
+    tone: "info" | "critical" | "warn";
+    text: string;
+  }>();
+
+  /** 현재 페이지의 자리를 다시 읽는다. 안내 글이 주어지면 그 자리를 고른다. */
+  const refresh = useCallback(async (selectedLabel?: string) => {
+    const list = await listImagePlaceholders({ openDesign });
+    if (!list.ok) {
+      setPlaceholders([]);
+      setTarget(undefined);
+      setMessage({ tone: "critical", text: list.reason });
+      return;
+    }
+    setPlaceholders(list.placeholders);
+    const clicked =
+      selectedLabel === undefined
+        ? undefined
+        : list.placeholders.find(
+            (item) => item.labelText?.trim() === selectedLabel.trim(),
+          );
+    setPickedByClick(clicked !== undefined);
+    setTarget((previous) =>
+      clicked
+        ? clicked.index
+        : previous !== undefined && previous < list.placeholders.length
+          ? previous
+          : list.placeholders[0]?.index,
+    );
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    // 자리 가운데의 안내 글이 선택되면 어느 자리인지 알 수 있다.
+    const dispose = selection.registerOnChange({
+      scope: "richtext",
+      onChange: (event) => {
+        if (event.count !== 1) {
+          return;
+        }
+        void (async () => {
+          const draft = await event.read();
+          await refresh(draft.contents[0]?.readPlaintext());
+        })();
+      },
+    });
+    return () => dispose?.();
+  }, [refresh]);
+
+  const apply = async (ratioLabel: string) => {
+    if (target === undefined) {
+      setMessage({
+        tone: "critical",
+        text: "바꿀 이미지 자리를 먼저 골라 주세요.",
+      });
+      return;
+    }
+    let ratio: number;
+    try {
+      ratio = parseRatio(ratioLabel.trim());
+    } catch (error) {
+      setMessage({
+        tone: "critical",
+        text: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+    setBusy(true);
+    const outcome = await changeImagePlaceholderRatio(
+      { ratio, ratioLabel: ratioLabel.trim(), index: target },
+      { openDesign },
+    );
+    setBusy(false);
+    if (!outcome.changed) {
+      setMessage({ tone: "critical", text: outcome.reason });
+      return;
+    }
+    setMessage(
+      outcome.overflows
+        ? {
+            tone: "warn",
+            text: `${ratioLabel}로 바꿨습니다(${outcome.width}×${outcome.previousHeight} → ${outcome.width}×${outcome.height}px). 아래 내용이 본문 영역을 넘었습니다. 넘친 내용은 다음 페이지로 직접 옮겨 주세요.`,
+          }
+        : {
+            tone: "info",
+            text: `${ratioLabel}로 바꿨습니다(${outcome.width}×${outcome.previousHeight} → ${outcome.width}×${outcome.height}px). 아래 요소 ${outcome.movedBelow}개를 함께 옮겼습니다.`,
+          },
+    );
+    await refresh();
+  };
+
+  return (
+    <Rows spacing="1u">
+      <Text size="small" variant="bold">
+        이미지 자리 비율 바꾸기
+      </Text>
+      <Text size="small" tone="secondary">
+        자리 가운데의 안내 글을 클릭하면 그 자리가 선택됩니다. 회색 빈 부분을
+        클릭한 경우에는 Canva가 앱에 알려 주지 않으므로 아래 목록에서 골라
+        주세요. 이미지를 넣기 전에만 바꿀 수 있습니다.
+      </Text>
+      {placeholders.length === 0 ? (
+        <Text size="small" tone="tertiary">
+          현재 페이지에 비어 있는 이미지 자리가 없습니다.
+        </Text>
+      ) : (
+        <Select
+          stretch
+          value={target}
+          options={placeholders.map((item) => ({
+            value: item.index,
+            label: placeholderName(item),
+          }))}
+          onChange={(value) => {
+            setTarget(value);
+            setPickedByClick(false);
+          }}
+        />
+      )}
+      {pickedByClick && (
+        <Text size="small" tone="secondary">
+          클릭한 자리를 골랐습니다.
+        </Text>
+      )}
+      <Button variant="tertiary" onClick={() => void refresh()}>
+        현재 페이지의 자리 다시 읽기
+      </Button>
+      <Columns spacing="1u">
+        {RATIO_PRESETS.slice(0, 3).map((preset) => (
+          <Column key={preset}>
+            <Button
+              variant="secondary"
+              stretch
+              disabled={busy || target === undefined}
+              onClick={() => void apply(preset)}
+            >
+              {preset}
+            </Button>
+          </Column>
+        ))}
+      </Columns>
+      <Columns spacing="1u">
+        {RATIO_PRESETS.slice(3).map((preset) => (
+          <Column key={preset}>
+            <Button
+              variant="secondary"
+              stretch
+              disabled={busy || target === undefined}
+              onClick={() => void apply(preset)}
+            >
+              {preset}
+            </Button>
+          </Column>
+        ))}
+      </Columns>
+      <Columns spacing="1u" alignY="end">
+        <Column>
+          <TextInput
+            value={custom}
+            placeholder="직접 입력 (예: 5:4 또는 1.5)"
+            onChange={(value) => setCustom(value)}
+          />
+        </Column>
+        <Column width="content">
+          <Button
+            variant="secondary"
+            disabled={busy || target === undefined || custom.trim() === ""}
+            onClick={() => void apply(custom)}
+          >
+            적용
+          </Button>
+        </Column>
+      </Columns>
+      {message && (
+        <Text
+          size="small"
+          tone={message.tone === "info" ? "secondary" : "critical"}
+        >
+          {message.text}
+        </Text>
+      )}
+    </Rows>
   );
 }
 
@@ -269,7 +491,9 @@ export function App() {
   const [progress, setProgress] = useState<ProgressState>();
   const [result, setResult] = useState<CreateBookResult>();
   const [failureReport, setFailureReport] = useState<FailureReport>();
-  const [failedAttempts, setFailedAttempts] = useState<FontAttemptFailure[]>([]);
+  const [failedAttempts, setFailedAttempts] = useState<FontAttemptFailure[]>(
+    [],
+  );
   /**
    * 직전 실행 기록. Canva Apps SDK에는 앱이 만든 페이지를 지우는 API가 없어
    * 되돌릴 수 없으므로, 어디까지 만들었는지 기억해 두고 이어서 생성한다.
@@ -502,9 +726,7 @@ export function App() {
                 <Button
                   variant="primary"
                   stretch
-                  onClick={() =>
-                    void runGeneration(previousRun.createdIndexes)
-                  }
+                  onClick={() => void runGeneration(previousRun.createdIndexes)}
                 >
                   {`남은 ${rerunDecision.remainingCount}페이지만 이어서 생성`}
                 </Button>
@@ -553,6 +775,7 @@ export function App() {
         >
           교재 페이지 생성
         </Button>
+        <ImagePlaceholderRatioPanel />
       </Rows>
     </div>
   );

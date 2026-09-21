@@ -11,7 +11,8 @@
 - [ ] Page numbers are present, ordered, and not duplicated where required.
 - [ ] Required images resolve and preserve aspect ratio.
 - [ ] Every image placeholder listed by the app after generation has been filled, and no grey placeholder box or guide label remains.
-- [ ] No filled placeholder crops needed content; each image matches the ratio declared in the manuscript.
+- [ ] No filled placeholder crops needed content; where an image's ratio differed from the manuscript, the box ratio was changed with the app before the image was added.
+- [ ] After a box ratio was changed, nothing on that page overlaps or runs past the body area, and the page number is untouched.
 - [ ] No placeholder relied on the default ratio without that being intended.
 
 ## Typography checks
