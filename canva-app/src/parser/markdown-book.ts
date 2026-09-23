@@ -24,6 +24,7 @@ import {
   isImageDirectiveLine,
   parseImageDirective,
 } from "./image-directive";
+import { CARD_LIMITS, COMPARISON_LIMITS } from "../types/book-spec";
 import type { ManuscriptIssue } from "./manuscript-lint";
 import { lintPageBody } from "./manuscript-lint";
 
@@ -568,6 +569,15 @@ function parseConcept(rawPage: RawPage, id: string): ConceptPage {
       rawPage.startLine,
     );
   }
+  if (
+    layout === "cards" &&
+    (sections.length < CARD_LIMITS.min || sections.length > CARD_LIMITS.max)
+  ) {
+    throw new MarkdownBookParseError(
+      `카드 배치(layout="cards")에는 '## 소제목'을 ${CARD_LIMITS.min}개에서 ${CARD_LIMITS.max}개까지 둘 수 있습니다. 지금은 ${sections.length}개입니다. 하나면 basic 배치를, 다섯 이상이면 페이지를 나눠 주세요.`,
+      rawPage.startLine,
+    );
+  }
   return {
     type: "concept",
     id,
@@ -600,6 +610,23 @@ function parseComparison(rawPage: RawPage, id: string): ComparisonPage {
   );
   const columns = tableCells(tableLines[0] ?? "");
   const rows = tableLines.slice(2).map(tableCells);
+  const tableLine =
+    rawPage.startLine +
+    1 +
+    rawPage.bodyLines.findIndex((raw) => raw === tableLines[0]);
+  // 28pt 표가 지면에 읽히는 한계. 넘으면 표를 나누거나 페이지를 나눈다.
+  if (columns.length > COMPARISON_LIMITS.maxColumns) {
+    throw new MarkdownBookParseError(
+      `comparison 표는 ${COMPARISON_LIMITS.maxColumns}열까지만 쓸 수 있습니다. 지금은 ${columns.length}열입니다. 열을 줄이거나 표를 둘로 나눠 주세요.`,
+      tableLine,
+    );
+  }
+  if (rows.length > COMPARISON_LIMITS.maxRows) {
+    throw new MarkdownBookParseError(
+      `comparison 표의 본문은 ${COMPARISON_LIMITS.maxRows}행까지만 쓸 수 있습니다. 지금은 ${rows.length}행입니다. 페이지를 나눠 주세요.`,
+      tableLine,
+    );
+  }
   return {
     type: "comparison",
     id,

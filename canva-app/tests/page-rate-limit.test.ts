@@ -1,6 +1,12 @@
 import type { BookProgressEvent } from "../src/builder/create-book";
-import { BookGenerationFailedError, createBook } from "../src/builder/create-book";
-import { buildFailureReport, describeProgress } from "../src/builder/generation-state";
+import {
+  BookGenerationFailedError,
+  createBook,
+} from "../src/builder/create-book";
+import {
+  buildFailureReport,
+  describeProgress,
+} from "../src/builder/generation-state";
 import {
   ConcurrentPageWriteError,
   SequentialPageWriter,
@@ -40,7 +46,10 @@ beforeAll(() => {
 
 const collectProgress = () => {
   const events: BookProgressEvent[] = [];
-  return { events, onProgress: (event: BookProgressEvent) => events.push(event) };
+  return {
+    events,
+    onProgress: (event: BookProgressEvent) => events.push(event),
+  };
 };
 
 describe("한 번에 한 페이지씩 순차 생성", () => {
@@ -122,7 +131,10 @@ describe("rate_limited 자동 재시도", () => {
     expect(result.createdPageCount).toBe(TOTAL);
     // 3번째 페이지만 세 번 호출됐고, 나머지는 한 번씩이다.
     const attemptsByOrdinal = canva.writes.reduce<Record<number, number>>(
-      (acc, write) => ({ ...acc, [write.ordinal]: (acc[write.ordinal] ?? 0) + 1 }),
+      (acc, write) => ({
+        ...acc,
+        [write.ordinal]: (acc[write.ordinal] ?? 0) + 1,
+      }),
       {},
     );
     expect(attemptsByOrdinal[2]).toBe(3);
@@ -185,7 +197,9 @@ describe("rate_limited 자동 재시도", () => {
     const withRetryAfter = Object.assign(rateLimitError(), {
       retryAfterSeconds: 3,
     });
-    const canva = createFakeCanva({ failures: { 0: [{ error: withRetryAfter }] } });
+    const canva = createFakeCanva({
+      failures: { 0: [{ error: withRetryAfter }] },
+    });
     const progress = collectProgress();
 
     await createBook(twelvePageBook(), canva.deps, {
@@ -300,7 +314,10 @@ describe("재시도할 오류와 즉시 멈출 오류", () => {
     const canva = createFakeCanva({
       failures: {
         1: Array.from({ length: 5 }, () => ({
-          error: canvaError("permission_denied", "Missing content write scope."),
+          error: canvaError(
+            "permission_denied",
+            "Missing content write scope.",
+          ),
         })),
       },
     });
@@ -342,7 +359,9 @@ describe("재시도할 오류와 즉시 멈출 오류", () => {
 
   it("일시적인 서버 오류는 제한된 횟수만 재시도한다", async () => {
     const canva = createFakeCanva({
-      failures: { 0: [{ error: canvaError("internal_error", "Server error.") }] },
+      failures: {
+        0: [{ error: canvaError("internal_error", "Server error.") }],
+      },
     });
 
     const result = await createBook(twelvePageBook(), canva.deps);
@@ -373,7 +392,9 @@ describe("중복 페이지 방지", () => {
     const canva = createFakeCanva({
       baselinePages: 3,
       failures: {
-        1: [{ error: canvaError("internal_error", "Server error."), lands: true }],
+        1: [
+          { error: canvaError("internal_error", "Server error."), lands: true },
+        ],
       },
     });
 
@@ -465,7 +486,9 @@ describe("진행 상황 표시", () => {
     const messages = progress.events.map(describeProgress);
     expect(messages[0]).toBe(`전체 ${TOTAL}페이지 중 1페이지 생성 중`);
     expect(messages).toContain(`전체 ${TOTAL}페이지 중 4페이지 생성 중`);
-    expect(messages).toContain(`전체 ${TOTAL}페이지 중 ${TOTAL}페이지 생성 완료`);
+    expect(messages).toContain(
+      `전체 ${TOTAL}페이지 중 ${TOTAL}페이지 생성 완료`,
+    );
     expect(messages[messages.length - 1]).toBe(
       `${TOTAL}개 Canva 페이지를 생성했습니다.`,
     );

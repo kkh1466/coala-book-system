@@ -8,7 +8,12 @@ import {
   describeProgress,
   isGenerateDisabled,
 } from "../src/builder/generation-state";
-import { createFakeCanva, fivePageBook, rateLimitError, twelvePageBook } from "./helpers/fake-canva";
+import {
+  createFakeCanva,
+  fivePageBook,
+  rateLimitError,
+  twelvePageBook,
+} from "./helpers/fake-canva";
 import { createBook } from "../src/builder/create-book";
 import { parseBookMarkdown } from "../src/parser/markdown-book";
 
@@ -31,10 +36,18 @@ describe("생성 버튼 활성화", () => {
 
   it("원고가 없거나 페이지 추가를 지원하지 않으면 누를 수 없다", () => {
     expect(
-      isGenerateDisabled({ canAddPage: true, hasBookSpec: false, phase: "idle" }),
+      isGenerateDisabled({
+        canAddPage: true,
+        hasBookSpec: false,
+        phase: "idle",
+      }),
     ).toBe(true);
     expect(
-      isGenerateDisabled({ canAddPage: false, hasBookSpec: true, phase: "idle" }),
+      isGenerateDisabled({
+        canAddPage: false,
+        hasBookSpec: true,
+        phase: "idle",
+      }),
     ).toBe(true);
   });
 });
@@ -139,7 +152,9 @@ describe("실패 보고 구분", () => {
     );
     const report = buildFailureReport(error);
     expect(report.kind).toBe("generation");
-    expect(report.lines.some((line) => line.value === "rate_limited")).toBe(true);
+    expect(report.lines.some((line) => line.value === "rate_limited")).toBe(
+      true,
+    );
   });
 
   it("원고 오류는 찾은 것을 모두 행 번호와 함께 보여 준다", () => {
@@ -199,7 +214,9 @@ describe("같은 원고로 다시 눌렀을 때", () => {
   });
 
   it("처음 실행이거나 원고가 바뀌었으면 그대로 생성한다", () => {
-    expect(decideRerun(undefined, fingerprint)).toEqual({ kind: "start-fresh" });
+    expect(decideRerun(undefined, fingerprint)).toEqual({
+      kind: "start-fresh",
+    });
     expect(
       decideRerun(
         {
@@ -215,11 +232,18 @@ describe("같은 원고로 다시 눌렀을 때", () => {
 
   it("일부만 만들어졌으면 이어서 만들지 되묻는다", () => {
     const decision = decideRerun(
-      { fingerprint, totalPages: 5, createdIndexes: [0, 1, 2], createdPageIds: [] },
+      {
+        fingerprint,
+        totalPages: 5,
+        createdIndexes: [0, 1, 2],
+        createdPageIds: [],
+      },
       fingerprint,
     );
     expect(decision.kind).toBe("confirm-resume");
-    expect(decision.kind === "confirm-resume" && decision.remainingCount).toBe(2);
+    expect(decision.kind === "confirm-resume" && decision.remainingCount).toBe(
+      2,
+    );
     expect(decision.kind === "confirm-resume" && decision.message).toContain(
       "3페이지까지 생성됐습니다",
     );
@@ -244,7 +268,9 @@ describe("같은 원고로 다시 눌렀을 때", () => {
 
 describe("이전에 만든 페이지 확인", () => {
   it("모두 남아 있으면 따로 안내하지 않는다", () => {
-    expect(describeCreatedPageCheck({ checked: true, missing: [] })).toBeUndefined();
+    expect(
+      describeCreatedPageCheck({ checked: true, missing: [] }),
+    ).toBeUndefined();
   });
 
   it("사라진 페이지가 있으면 그대로 알린다", () => {

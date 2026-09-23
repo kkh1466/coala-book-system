@@ -2,7 +2,12 @@
 
 Use this reference when the user gives notes, an outline, lecture slides, an existing explanation, or just a topic, and wants a Markdown manuscript that the Coala Book Builder app can turn into pages. The deliverable is a manuscript that passes `npm run validate` plus a hand-over list of what a person still has to prepare.
 
-Read `manuscript-format.md` first: it is the only authority on what the parser accepts. Read `content-writing.md` for tone and sequencing, and `page-types.md` to choose page types. The manuscripts under `test-input/` are working examples of every page type and block.
+Read `manuscript-format.md` first: it is the only authority on what the parser accepts. Read `content-writing.md` for tone and sequencing, and `page-types.md` to choose page types.
+
+Two kinds of example exist, with different roles:
+
+- `coala-book-md/ch05-conditionals/book.md` is the **model manuscript**: a real session written from `notes.md` in the voice a textbook should have. Match its tone, page plan, and hand-over.
+- `test-input/*.md` are **syntax examples** for every page type and block. Their body text is test commentary ("이 상자는 …이어야 합니다"), not textbook prose; copy their syntax, never their wording.
 
 ## Procedure
 
@@ -11,7 +16,7 @@ Read `manuscript-format.md` first: it is the only authority on what the parser a
 3. **Write the manuscript** using only components that `manuscript-format.md` allows. Choose the representation that best explains the supplied material. Use different suitable components across the lesson when they add clarity, but do not add a component or repeat content merely to increase variety. Follow "Paragraphs and bullets", "Screenshot guides", and "Images" below.
 4. **Run every code block.** An `output` block must be the real output of the code above it. When a Python interpreter is available, run the code and paste what it printed. Never type an output from memory. GUI programs get a `role="result"` image placeholder instead.
 5. **Check source coverage and claims.** Compare the complete draft with the user's notes or other source: account for every required topic, example, activity, constraint, and supplied image; remove repetition and unsupported specifics. Check that each practice page states the learner action and observable result. Mark any uncertain fact, version-dependent instruction, or assumed screen state for review rather than presenting it as verified.
-6. **Validate and fix until it passes.** From `canva-app/`, run `npm run validate -- <manuscript.md>` (add `--json` to read the issues as data). Fix every reported row and run again. Do not hand over a manuscript that has not printed `✓`. Without the repository, check by hand against "Supported Markdown, and nothing else" in `manuscript-format.md`. Validation checks structure and syntax, not factual accuracy, visual readability, actual rendered page count, or the existence of image files.
+6. **Validate and fix until it passes.** From `canva-app/`, run `npm run validate -- <manuscript.md> --layout` (add `--json` to read the result as data). Fix every reported row and run again. Do not hand over a manuscript that has not printed `✓`. `--layout` also reports how many Canva pages each manuscript page becomes and lists every image and flowchart placeholder: when a page shows `← 분할됨`, decide whether the split reads well or whether the page should be divided at a better place (one learning purpose per page). Without the repository, check by hand against "Supported Markdown, and nothing else" in `manuscript-format.md`. Validation checks structure, syntax, and layout, not factual accuracy, visual readability, or the existence of image files.
 7. **Hand over.** Give the user the manuscript path and a list of what remains for a person: every image placeholder with its planned path, ratio, what it must show, and whether the file is already supplied or still needed; every flowchart to build in Canva; any fact or software behaviour that should be checked. State the validator's page count as manuscript page containers, not the final Canva page count after splitting.
 
 Save manuscripts under `coala-book-md/<book>/book.md`, with planned image paths under `assets/` relative to that file.
@@ -62,6 +67,7 @@ Write for readability at 28 pt on a portrait page:
 - Keep a short, naturally flowing explanation as a paragraph. Do not turn content into a list when splitting it would break the flow or read awkwardly.
 - When a paragraph is about to become long, first split it into two paragraphs; switch to bullets only when the reader is better served by scanning items one by one.
 - Lists are one level deep, and inline formatting is `**강조**` only. Name identifiers in bold rather than in backticks.
+- Avoid characters the book font lacks — arrows (`→`), check marks (`✓`), box-drawing, emoji. Canva draws them with a fallback font that sits low on the line. Write `->`, "다음", or a sentence instead; keep `→` only inside code or output where the program printed it.
 
 ## Screenshot guides
 
@@ -71,7 +77,7 @@ Write for readability at 28 pt on a portrait page:
 
 ## Images
 
-- Plan useful images from the supplied material and the page's teaching purpose. The normal hand-off is a manuscript with `::image{...}` placeholders; the user adds the actual images later. Do not wait for files before writing or validating the MD. If the user supplies images first, inspect and use those that fit; honor any stated image choices, exclusions, or count.
+- Images the user names are placed exactly as named: same subjects, same count, where the user indicated or where the material calls for them. Beyond those, plan additional placeholders from the material and the page's teaching purpose; add them without asking, and mark each one as an AI addition in the hand-over ("AI가 추가함") so the user can remove any they do not want. The normal hand-off is a manuscript with `::image{...}` placeholders; the user adds the actual images later. Do not wait for files before writing or validating the MD. If the user supplies images first, inspect and use those that fit.
 - Give each placeholder a stable planned `src` under `assets/`, an `alt` describing what the learner should see, and an explicit `ratio` matching the expected final image. If the exact ratio is unknown, choose a plausible provisional ratio, mark it as provisional in the hand-over, and tell the user to adjust the placeholder ratio in the app before dropping in a differently shaped image. Never claim the file exists when it has only been planned.
 - Use a placeholder when the visual carries information that text alone would make hard to follow: a relevant app screen, a result state, or a supplied diagram. Do not add decorative images solely for variety or fabricate a software screen. A required capture for each `screenshot-guide` step and a `role="result"` image after GUI code are format requirements; include them and list them in the hand-over.
 - If a required visual is uncertain, describe the expected content in `alt` and the hand-over instead of inventing what a real screen or result looks like. If an image cannot be planned without a missing product detail, ask for that detail or choose a page type that does not require the image.
@@ -87,10 +93,11 @@ Write for readability at 28 pt on a portrait page:
 ## Hand-over list format
 
 ```
-원고: coala-book-md/ch05-conditionals/book.md (검증 통과, 원고 페이지 컨테이너 8개; Canva에서 분할될 수 있음)
+원고: coala-book-md/ch05-conditionals/book.md (검증 통과, 원고 8페이지 → Canva 9장, if-else 페이지가 2장으로 나뉨)
 
 준비할 이미지 (3)
-- assets/ch05/if-window.png · 미제공 · 16:9 (임시 비율) · 실행 결과 · 나이 입력 창과 결과 문구
+- assets/ch05/practice-before.png · 사용자 지정 · 16:9 · half · 실행 직후 화면
+- assets/ch05/if-window.png · AI가 추가함 · 16:9 (임시 비율) · 실행 결과 · 나이 입력 창과 결과 문구
 - …
 
 직접 만들 순서도 (1)

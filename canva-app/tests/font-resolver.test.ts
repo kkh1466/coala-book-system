@@ -12,7 +12,11 @@ import {
   resolveFlowchartFont,
 } from "../src/theme/font-resolver";
 
-const font = (name: string, ref: string, weights = ["normal", "bold"]): Font => ({
+const font = (
+  name: string,
+  ref: string,
+  weights = ["normal", "bold"],
+): Font => ({
   name,
   ref: ref as FontRef,
   weights: weights.map((weight) => ({
@@ -43,7 +47,9 @@ describe("font name comparison", () => {
   });
 
   it("treats a style name as the same family", () => {
-    expect(matchFontName("Wanted Sans Regular", BOOK_FONT_FAMILY)).toBe("exact");
+    expect(matchFontName("Wanted Sans Regular", BOOK_FONT_FAMILY)).toBe(
+      "exact",
+    );
     expect(matchFontName("Wanted Sans Bold", BOOK_FONT_FAMILY)).toBe("exact");
     expect(matchFontName("Wanted Sans SemiBold Italic", BOOK_FONT_FAMILY)).toBe(
       "exact",
@@ -82,7 +88,9 @@ describe("font name comparison", () => {
     const exact = font("Wanted Sans Regular", "regular-ref");
 
     expect(
-      findFontsByName([variable, exact], BOOK_FONT_FAMILY).map(({ ref }) => ref),
+      findFontsByName([variable, exact], BOOK_FONT_FAMILY).map(
+        ({ ref }) => ref,
+      ),
     ).toEqual(["regular-ref", "variable-ref"]);
   });
 });

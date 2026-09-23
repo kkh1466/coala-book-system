@@ -22,26 +22,31 @@ const shapeElement = { type: "shape" };
 
 /** openDesign({ type: "all_pages" }) 세션을 흉내 낸다. */
 const fakeOpenDesign = (pages: unknown[][]) =>
-  jest.fn(async (_options: unknown, callback: (session: unknown) => Promise<void>) => {
-    let cursor = 0;
-    await callback({
-      pageRefs: {
-        toArray: () => pages.map(() => ({ type: "absolute", locked: false })),
-      },
-      helpers: {
-        openPage: async (
-          _ref: unknown,
-          onPage: (result: unknown) => Promise<void>,
-        ) => {
-          const elements = pages[cursor] ?? [];
-          cursor += 1;
-          await onPage({ page: { elements: { toArray: () => elements } } });
-          return { status: "executed" };
+  jest.fn(
+    async (
+      _options: unknown,
+      callback: (session: unknown) => Promise<void>,
+    ) => {
+      let cursor = 0;
+      await callback({
+        pageRefs: {
+          toArray: () => pages.map(() => ({ type: "absolute", locked: false })),
         },
-      },
-      sync: async () => undefined,
-    });
-  }) as unknown as typeof openDesign;
+        helpers: {
+          openPage: async (
+            _ref: unknown,
+            onPage: (result: unknown) => Promise<void>,
+          ) => {
+            const elements = pages[cursor] ?? [];
+            cursor += 1;
+            await onPage({ page: { elements: { toArray: () => elements } } });
+            return { status: "executed" };
+          },
+        },
+        sync: async () => undefined,
+      });
+    },
+  ) as unknown as typeof openDesign;
 
 const wantedSans: Font = {
   name: "Wanted Sans",
@@ -95,9 +100,10 @@ describe("scanning fonts the design already uses", () => {
   });
 
   it("stops after the page cap so a long design does not stall generation", async () => {
-    const pages = Array.from({ length: MAX_SCANNED_PAGES + 5 }, (_unused, index) => [
-      textElement(`ref-${index}`),
-    ]);
+    const pages = Array.from(
+      { length: MAX_SCANNED_PAGES + 5 },
+      (_unused, index) => [textElement(`ref-${index}`)],
+    );
     const findFonts = jest.fn().mockResolvedValue({ fonts: [] });
 
     await scanDesignFonts({ openDesign: fakeOpenDesign(pages), findFonts });

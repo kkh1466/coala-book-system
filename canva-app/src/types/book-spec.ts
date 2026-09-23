@@ -72,6 +72,11 @@ export type ConceptPage = PageBase & {
   callout?: Callout;
 };
 
+/** 28pt 표가 세로 지면에 읽히는 한계. manuscript-format.md의 약속과 같다. */
+export const COMPARISON_LIMITS = { maxColumns: 3, maxRows: 5 } as const;
+/** 카드 배치의 카드 수. 둘 미만은 카드가 아니고, 넷을 넘으면 세 줄이 된다. */
+export const CARD_LIMITS = { min: 2, max: 4 } as const;
+
 export type ComparisonPage = PageBase & {
   type: "comparison";
   title: string;
@@ -287,6 +292,15 @@ function validateConceptPage(page: ConceptPage, pageIndex: number): void {
   if (!Array.isArray(page.sections) || page.sections.length === 0) {
     throw new BookSpecValidationError(`${prefix}.sections must not be empty.`);
   }
+  if (
+    page.layout === "cards" &&
+    (page.sections.length < CARD_LIMITS.min ||
+      page.sections.length > CARD_LIMITS.max)
+  ) {
+    throw new BookSpecValidationError(
+      `${prefix}.sections must have ${CARD_LIMITS.min} to ${CARD_LIMITS.max} cards.`,
+    );
+  }
   page.sections.forEach((section, index) => {
     requireText(section.title, `${prefix}.sections[${index}].title`);
     if (!section.body && (!section.bullets || section.bullets.length === 0)) {
@@ -313,6 +327,16 @@ function validateComparisonPage(page: ComparisonPage, pageIndex: number): void {
   const prefix = `pages[${pageIndex}]`;
   requireText(page.title, `${prefix}.title`);
   requireTextArray(page.columns, `${prefix}.columns`);
+  if (page.columns.length > COMPARISON_LIMITS.maxColumns) {
+    throw new BookSpecValidationError(
+      `${prefix}.columns allows at most ${COMPARISON_LIMITS.maxColumns} columns.`,
+    );
+  }
+  if (page.rows.length > COMPARISON_LIMITS.maxRows) {
+    throw new BookSpecValidationError(
+      `${prefix}.rows allows at most ${COMPARISON_LIMITS.maxRows} rows.`,
+    );
+  }
   if (page.columns.length < 2) {
     throw new BookSpecValidationError(
       `${prefix}.columns needs at least two columns.`,

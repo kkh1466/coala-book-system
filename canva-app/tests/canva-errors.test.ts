@@ -12,7 +12,9 @@ describe("재시도할 오류와 즉시 멈출 오류 구분", () => {
   it.each(["rate_limited", "internal_error", "timeout"] as const)(
     "%s는 재시도한다",
     (code) => {
-      expect(classifyFailure(canvaError(code, "temporary")).retryable).toBe(true);
+      expect(classifyFailure(canvaError(code, "temporary")).retryable).toBe(
+        true,
+      );
     },
   );
 
@@ -52,9 +54,9 @@ describe("재시도할 오류와 즉시 멈출 오류 구분", () => {
     expect(failure.category).toBe("manuscript");
     expect(failure.retryable).toBe(false);
     expect(failure.code).toBeUndefined();
-    expect(isManuscriptError(new PageContentTooDenseError("p1", "줄여 주세요."))).toBe(
-      true,
-    );
+    expect(
+      isManuscriptError(new PageContentTooDenseError("p1", "줄여 주세요.")),
+    ).toBe(true);
     expect(isManuscriptError(rateLimitError())).toBe(false);
   });
 });

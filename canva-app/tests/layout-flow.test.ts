@@ -46,7 +46,8 @@ beforeEach(() => {
 
 describe("학습 목표 영역", () => {
   it("목표 수에 따라 다음 섹션 위치가 달라진다", () => {
-    const short = parts(baseChapter(["첫 번째 목표입니다."]))[0]?.elements ?? [];
+    const short =
+      parts(baseChapter(["첫 번째 목표입니다."]))[0]?.elements ?? [];
     const long =
       parts(
         baseChapter([
@@ -221,7 +222,8 @@ describe("페이지 분할", () => {
   it("섹션 제목만 페이지 하단에 홀로 남기지 않는다", () => {
     const laid = parts(baseChapter(["목표 하나입니다."], longBody));
     const headingLine = Math.ceil(toCanvaFontSize(30) * LINE_HEIGHT.global);
-    const twoBodyLines = Math.ceil(toCanvaFontSize(28) * LINE_HEIGHT.global) * 2;
+    const twoBodyLines =
+      Math.ceil(toCanvaFontSize(28) * LINE_HEIGHT.global) * 2;
 
     for (const part of laid) {
       for (const heading of findTexts(part.elements, (text) =>

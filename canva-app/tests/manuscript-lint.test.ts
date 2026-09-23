@@ -167,6 +167,71 @@ describe("지원하지 않는 Markdown 문법", () => {
   });
 });
 
+describe("표와 카드의 크기 제한", () => {
+  const messagesOf = (source: string) =>
+    errorsOf(source).map((issue) => `${issue.line}: ${issue.message}`);
+  const comparison = (header: string, rows: string[]): string =>
+    book([
+      ':::page{type="comparison" id="c1"}',
+      "# 비교",
+      "",
+      header,
+      header.replace(/[^|]+/g, "---"),
+      ...rows,
+      ":::",
+    ]);
+
+  it("comparison 표는 3열·본문 5행까지다", () => {
+    expect(
+      messagesOf(comparison("| a | b | c | d |", ["| 1 | 2 | 3 | 4 |"])),
+    ).toEqual([expect.stringMatching(/^9: comparison 표는 3열까지만/)]);
+    expect(
+      messagesOf(
+        comparison(
+          "| a | b |",
+          Array.from({ length: 6 }, () => "| 1 | 2 |"),
+        ),
+      ),
+    ).toEqual([
+      expect.stringMatching(/^9: comparison 표의 본문은 5행까지만/),
+    ]);
+    expect(
+      messagesOf(
+        comparison(
+          "| a | b | c |",
+          Array.from({ length: 5 }, () => "| 1 | 2 | 3 |"),
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("카드 배치는 소제목 2~4개다", () => {
+    const cards = (count: number): string =>
+      book([
+        ':::page{type="concept" id="k1" layout="cards"}',
+        "# 제목",
+        "",
+        ...Array.from({ length: count }, (_, i) => [
+          `## 카드 ${i + 1}`,
+          "",
+          "내용",
+          "",
+        ]).flat(),
+        ":::",
+      ]);
+
+    expect(messagesOf(cards(1))).toEqual([
+      expect.stringMatching(
+        /^6: 카드 배치\(layout="cards"\)에는 '## 소제목'을 2개에서 4개까지/,
+      ),
+    ]);
+    expect(messagesOf(cards(5))).toEqual([
+      expect.stringContaining("지금은 5개입니다"),
+    ]);
+    expect(messagesOf(cards(4))).toEqual([]);
+  });
+});
+
 describe("오류 모으기", () => {
   it("여러 페이지의 오류를 원고 행 순서로 한 번에 돌려준다", () => {
     const source = book(

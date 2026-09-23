@@ -95,13 +95,13 @@ The source book is evidence for visual language and reusable page patterns, not 
 
 ## Writing a manuscript from rough material
 
-When the user asks for a manuscript rather than supplying one, follow `references/manuscript-authoring.md`: collect the inputs, choose page types and blocks from its component inventory according to the supplied material, run every code block for its real `output`, validate with `npm run validate` until it passes, and hand over the manuscript with the list of images and flowcharts a person still has to prepare. Save the result under `coala-book-md/<book>/book.md`.
+When the user asks for a manuscript rather than supplying one, follow `references/manuscript-authoring.md`: collect the inputs, choose page types and blocks from its component inventory according to the supplied material, run every code block for its real `output`, validate with `npm run validate -- <file> --layout` until it passes, and hand over the manuscript with the list of images and flowcharts a person still has to prepare. Save the result under `coala-book-md/<book>/book.md`.
 
 Three rules from the user apply to every manuscript written this way:
 
 - In a `screenshot-guide`, declare captures with `width="half"` by default so two steps fit on a page.
 - Prefer bullets over long prose when listing examples, features, steps, or objectives, with a short lead-in; keep short flowing explanations as paragraphs and split a long paragraph before turning it into a list.
-- Use a range of supported components where each genuinely helps the lesson; do not add an unsuitable component just for variety. Plan `::image{...}` placeholders for useful or format-required images even when no image file exists yet. Reuse images the user supplies, respect any image choices or limits they give, and list the remaining images for the user to add after generation.
+- Use a range of supported components where each genuinely helps the lesson; do not add an unsuitable component just for variety. Plan `::image{...}` placeholders for useful or format-required images even when no image file exists yet. Reuse images the user supplies and respect any image choices or limits they give; placeholders the AI adds beyond those are marked "AI가 추가함" in the hand-over list so the user can drop them.
 
 ## Missing manuscript behavior
 

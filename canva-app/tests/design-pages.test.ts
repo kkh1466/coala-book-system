@@ -1,5 +1,8 @@
 import type { DesignMetadata, PageId, PageMetadata } from "@canva/design";
-import { countDesignPages, findMissingPageIds } from "../src/builder/design-pages";
+import {
+  countDesignPages,
+  findMissingPageIds,
+} from "../src/builder/design-pages";
 
 const metadata = (pages: PageMetadata[]): DesignMetadata =>
   ({
@@ -30,10 +33,7 @@ describe("이전 실행에서 만든 페이지 확인", () => {
       .fn()
       .mockResolvedValue(metadata([absolutePage("a"), absolutePage("c")]));
 
-    const check = await findMissingPageIds(
-      ["a", "b"] as PageId[],
-      read,
-    );
+    const check = await findMissingPageIds(["a", "b"] as PageId[], read);
 
     expect(check.checked).toBe(true);
     expect(check.missing).toEqual(["b"]);

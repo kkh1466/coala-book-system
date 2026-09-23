@@ -60,7 +60,7 @@ Currently supported values:
 
 ### Concept
 
-Use `layout="basic"` for vertically stacked sections or `layout="cards"` for up to four cards.
+Use `layout="basic"` for vertically stacked sections or `layout="cards"` for two to four cards; one card or five or more is rejected.
 
 ```markdown
 :::page{type="concept" id="data-types" layout="cards"}
@@ -85,7 +85,7 @@ Use `layout="basic"` for vertically stacked sections or `layout="cards"` for up 
 
 ### Comparison
 
-Use a standard Markdown table with two or three columns and no more than five body rows.
+Use a standard Markdown table with two or three columns and no more than five body rows; a wider or longer table is rejected with its row number.
 
 ```markdown
 :::page{type="comparison" id="prompt-comparison"}
@@ -425,7 +425,7 @@ The command calls the same parser the Canva app uses when a manuscript is upload
 
 Fix every reported row and run the command again until it prints `✓`. Do not hand over a manuscript that has not passed.
 
-The command checks structure and syntax only. It does not check whether the content is correct, whether a page is comfortable to read, how many Canva pages the manuscript becomes after splitting, or whether the planned image files exist.
+Add `--layout` to also run the app's layout engine: the report shows how many Canva pages each manuscript page becomes (`← 분할됨` marks a split) and lists every image and flowchart placeholder with its page. The command does not check whether the content is correct, whether a page is comfortable to read, or whether the planned image files exist.
 
 ## Validation behavior
 

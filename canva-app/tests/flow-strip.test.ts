@@ -146,7 +146,13 @@ describe("flow 블록 원고 검사", () => {
   });
 
   it("카드 배치와 다른 페이지 형식에서는 거절한다", () => {
-    expect(errorsOf(book(concept(FLOW, ' layout="cards"')))).toEqual([
+    expect(
+      errorsOf(
+        book(
+          concept([...FLOW, "", "## 둘째 카드", "", "내용"], ' layout="cards"'),
+        ),
+      ),
+    ).toEqual([
       expect.stringContaining('flow 블록은 concept layout="basic"에서만'),
     ]);
     expect(

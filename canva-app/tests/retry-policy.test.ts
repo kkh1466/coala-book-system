@@ -59,7 +59,9 @@ describe("재시도 가능 시각 추출", () => {
 
   it("밀리초 필드가 실려 오면 그대로 읽는다", () => {
     expect(
-      extractRetryAfterMs(Object.assign(new Error("x"), { retryAfterMs: 2_500 })),
+      extractRetryAfterMs(
+        Object.assign(new Error("x"), { retryAfterMs: 2_500 }),
+      ),
     ).toBe(2_500);
   });
 
@@ -80,7 +82,9 @@ describe("재시도 가능 시각 추출", () => {
   });
 
   it("값이 없으면 undefined를 돌려준다", () => {
-    expect(extractRetryAfterMs(new Error("Add page rate limit exceeded."))).toBeUndefined();
+    expect(
+      extractRetryAfterMs(new Error("Add page rate limit exceeded.")),
+    ).toBeUndefined();
     expect(extractRetryAfterMs(undefined)).toBeUndefined();
   });
 });

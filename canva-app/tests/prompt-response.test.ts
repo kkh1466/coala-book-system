@@ -186,7 +186,14 @@ describe("prompt·response 원고 검사", () => {
 
   it("카드, 강조 박스, 다른 페이지 형식에서는 거절한다", () => {
     expect(
-      errorsOf(book(concept(dialogue("질문", ["답"]), ' layout="cards"'))),
+      errorsOf(
+        book(
+          concept(
+            [...dialogue("질문", ["답"]), "", "## 둘째 카드", "", "내용"],
+            ' layout="cards"',
+          ),
+        ),
+      ),
     ).toEqual([
       expect.stringContaining('layout="basic"에서만'),
       expect.stringContaining('layout="basic"에서만'),

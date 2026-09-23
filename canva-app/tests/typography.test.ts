@@ -3,10 +3,7 @@ import { layoutPage } from "../src/builder/create-page";
 import { layoutBook } from "../src/builder/layout-book";
 import { planBook } from "../src/builder/plan-book";
 import { parseBookMarkdown } from "../src/parser/markdown-book";
-import type {
-  ChapterOpeningPage,
-  ConceptPage,
-} from "../src/types/book-spec";
+import type { ChapterOpeningPage, ConceptPage } from "../src/types/book-spec";
 import {
   CANVA_PX_PER_PT,
   FontSizeReducedError,
@@ -109,14 +106,17 @@ describe("고정 활자 크기", () => {
       sections: [
         {
           title: "1단계 · 입력 이해하기",
-          content: "다음을 확인합니다.\n\n- 질문의 핵심 주제를 파악합니다\n- 요청의 형식을 확인합니다",
+          content:
+            "다음을 확인합니다.\n\n- 질문의 핵심 주제를 파악합니다\n- 요청의 형식을 확인합니다",
         },
       ],
     };
 
     const elements = firstPage(page);
 
-    expect(findText(elements, "질문의 핵심 주제를 파악합니다").fontSizePt).toBe(28);
+    expect(findText(elements, "질문의 핵심 주제를 파악합니다").fontSizePt).toBe(
+      28,
+    );
     // 기호도 같은 크기여야 본문 줄과 나란히 선다.
     for (const marker of findTexts(elements, (text) => text === "•")) {
       expect(marker.fontSizePt).toBe(28);
@@ -151,15 +151,17 @@ describe("고정 활자 크기", () => {
       fontWeight: "bold",
       color: "#1800AD",
     });
-    expect(
-      Object.keys(paragraph?.inline[0]?.formatting ?? {}),
-    ).not.toContain("fontSize");
+    expect(Object.keys(paragraph?.inline[0]?.formatting ?? {})).not.toContain(
+      "fontSize",
+    );
     // 원고의 ** 기호가 독자에게 보이면 안 된다.
     expect(paragraph?.text).not.toContain("*");
   });
 
   it("대체 글꼴로 내려가도 글자 크기가 그대로다", () => {
-    const withWantedSans = textElements(firstPage(chapterPage, wantedSansFonts));
+    const withWantedSans = textElements(
+      firstPage(chapterPage, wantedSansFonts),
+    );
     const withFallback = textElements(firstPage(chapterPage, fallbackFonts));
 
     expect(withFallback.map((element) => element.fontSizePt)).toEqual(
@@ -169,7 +171,10 @@ describe("고정 활자 크기", () => {
     expect(withFallback.every((element) => element.fontRef === undefined)).toBe(
       true,
     );
-    expect(findText(firstPage(chapterPage, fallbackFonts), "AI 디지털 리터러시").fontSizePt).toBe(50);
+    expect(
+      findText(firstPage(chapterPage, fallbackFonts), "AI 디지털 리터러시")
+        .fontSizePt,
+    ).toBe(50);
   });
 
   it("어떤 페이지 유형에서도 본문이 28pt 아래로 내려가지 않는다", () => {
