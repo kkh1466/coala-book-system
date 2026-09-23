@@ -28,7 +28,7 @@ Unconfirmed:
 - native Canva color-picker HEX values; values measured from the full-resolution PNG exports are recorded in `style-guide.md` and are sufficient for reproduction;
 - caution-box fill, table borders, corner radii, and shadow values;
 - cover-title size;
-- caption, label, table, code, and page-number sizes;
+- caption, label, table, and page-number sizes; the code box (fill `#EEF1F5`, body-size monospace text, grey comments, blue keywords) is an app-chosen provisional look with no reference page;
 - font weights for each role;
 - flowchart-internal text size and weight for `Hakgyoansim Chilpanjiugae OTF` (line spacing `2` and letter spacing `0` are already confirmed globally);
 - ordinary flowchart connector stroke weight (the loop-container internal divider is separately confirmed as weight `10`);

@@ -152,8 +152,8 @@ describe("실패 보고 구분", () => {
       ':::page{type="concept" id="p1" layout="basic"}',
       "# 제목",
       "## 소제목",
-      "```python",
-      "```",
+      "~~~python",
+      "~~~",
       "> 인용문",
       ":::",
     ].join("\n");

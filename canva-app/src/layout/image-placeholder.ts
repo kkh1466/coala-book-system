@@ -2,7 +2,8 @@ import type { ElementAtPoint } from "@canva/design";
 import type { ImageDirective } from "../parser/image-directive";
 import type { InlineSegment } from "../parser/inline";
 import { coalaTheme } from "../theme/coala-theme";
-import { CONTENT_WIDTH, GAP, PAGE } from "../theme/page-layout";
+import { CODE_BOX, CONTENT_WIDTH, GAP, PAGE } from "../theme/page-layout";
+import { RESULT_LABEL } from "../parser/code-result";
 import { LINE_HEIGHT, TYPOGRAPHY } from "../theme/typography";
 import { createRichText, createVectorShape } from "../builder/element-factory";
 import type { FlowStyle } from "./content-flow";
@@ -92,10 +93,24 @@ export function imagePlaceholderItem(
       })
     : 0;
   const captionBlock = image.caption ? GAP.imageCaption + captionHeight : 0;
+  // GUI 실행 결과 자리에는 위에 "실행 결과" 라벨이 영구히 놓인다. 이미지를
+  // 넣어도 라벨은 자리 밖에 있으므로 그대로 남는다.
+  const labelHeight =
+    image.role === "result"
+      ? measureText(RESULT_LABEL, {
+          fontSize: TYPOGRAPHY.body,
+          width: frameWidth,
+          lineHeightEm: LINE_HEIGHT.global,
+        })
+      : 0;
+  const labelBlock =
+    image.role === "result" ? labelHeight + CODE_BOX.afterResultLabel : 0;
 
   const maxBoxHeight = Math.max(
     1,
-    Math.floor(options.maxHeight - continuationReserve() - captionBlock),
+    Math.floor(
+      options.maxHeight - continuationReserve() - captionBlock - labelBlock,
+    ),
   );
   const declaredHeight = Math.round(declaredWidth / image.ratio);
   const scaledToFit = declaredHeight > maxBoxHeight;
@@ -107,7 +122,7 @@ export function imagePlaceholderItem(
 
   const innerWidth = boxWidth - LABEL_PADDING.x * 2;
   const label = pickLabel(image, innerWidth, boxHeight - LABEL_PADDING.y * 2);
-  const labelHeight = label
+  const placeholderLabelHeight = label
     ? measureText(label.map((segment) => segment.text).join(""), {
         fontSize: TYPOGRAPHY.body,
         width: innerWidth,
@@ -116,7 +131,7 @@ export function imagePlaceholderItem(
     : 0;
 
   return {
-    height: boxHeight + captionBlock,
+    height: labelBlock + boxHeight + captionBlock,
     gapAfter: options.gapAfter,
     pendingImage: {
       src: image.src,
@@ -126,11 +141,28 @@ export function imagePlaceholderItem(
       width: boxWidth,
       height: boxHeight,
       scaledToFit,
+      ...(image.role === "result" ? { role: "result" as const } : {}),
     },
-    render: (top): ElementAtPoint[] => [
+    render: (itemTop): ElementAtPoint[] => [
+      ...(image.role === "result"
+        ? [
+            createRichText({
+              left: style.left,
+              top: itemTop,
+              width: frameWidth,
+              text: RESULT_LABEL,
+              fontRef: style.fonts.fontRef,
+              fontSize: TYPOGRAPHY.body,
+              role: "body",
+              fontWeight: style.fonts.boldWeight,
+              color: colors.primary,
+              lineHeightEm: LINE_HEIGHT.global,
+            }),
+          ]
+        : []),
       createVectorShape({
         left: boxLeft,
-        top,
+        top: itemTop + labelBlock,
         width: boxWidth,
         height: boxHeight,
         path: rectPath(boxWidth, boxHeight),
@@ -141,7 +173,10 @@ export function imagePlaceholderItem(
         ? [
             createRichText({
               left: boxLeft + LABEL_PADDING.x,
-              top: top + Math.round((boxHeight - labelHeight) / 2),
+              top:
+                itemTop +
+                labelBlock +
+                Math.round((boxHeight - placeholderLabelHeight) / 2),
               width: innerWidth,
               segments: label,
               fontRef: style.fonts.fontRef,
@@ -159,7 +194,7 @@ export function imagePlaceholderItem(
         ? [
             createRichText({
               left: style.left,
-              top: top + boxHeight + GAP.imageCaption,
+              top: itemTop + labelBlock + boxHeight + GAP.imageCaption,
               width: frameWidth,
               text: image.caption,
               fontRef: style.fonts.fontRef,

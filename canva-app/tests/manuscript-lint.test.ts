@@ -36,7 +36,7 @@ const errorsOf = (source: string) =>
 describe("지원하지 않는 Markdown 문법", () => {
   // 예전에는 모두 오류 없이 통과해 기호째로 Canva에 찍히거나 사라졌다.
   it.each([
-    ["코드 블록", ["```python", "print('hi')", "```"], "코드 블록"],
+    ["~~~ 코드 펜스", ["~~~python", "print('hi')", "~~~"], "```로 여닫아야"],
     ["표", ["| a | b |", "|---|---|", "| 1 | 2 |"], "표를 넣을 수 없습니다"],
     ["다른 강조 박스", ["본문", "", "> [!CAUTION]", "> 주의"], "[!CAUTION]"],
     ["인용문", ["본문", "", "> 그냥 인용문"], "인용문(>)"],
@@ -58,9 +58,9 @@ describe("지원하지 않는 Markdown 문법", () => {
     expect(errors[0]?.line).toBeGreaterThanOrEqual(11);
   });
 
-  it("코드 블록 하나에 오류를 하나만 낸다", () => {
+  it("거절되는 펜스 하나에 오류를 하나만 내고 안의 줄은 검사하지 않는다", () => {
     const errors = errorsOf(
-      book(concept(["```python", "# 주석", "| a | b |", "> x", "```"])),
+      book(concept(["~~~python", "# 주석", "| a | b |", "> x", "~~~"])),
     );
 
     expect(errors.map((issue) => issue.line)).toEqual([11]);
@@ -171,7 +171,7 @@ describe("오류 모으기", () => {
   it("여러 페이지의 오류를 원고 행 순서로 한 번에 돌려준다", () => {
     const source = book(
       [':::page{type="cover" id="cover"}', "# 표지", ":::", ""],
-      concept(["```", "code", "```"], "p1"),
+      concept(["~~~", "code", "~~~"], "p1"),
       concept(["본문"], "p1"),
       [
         ':::page{type="flowchart" id="f1"}',
@@ -205,7 +205,7 @@ describe("오류 모으기", () => {
   });
 
   it("parseBookMarkdown은 첫 오류를 메시지로, 전부를 issues로 던진다", () => {
-    const source = book(concept(["```", "```", "", "> 인용문"]));
+    const source = book(concept(["~~~", "~~~", "", "> 인용문"]));
 
     let thrown: unknown;
     try {

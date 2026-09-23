@@ -18,6 +18,8 @@ export type PendingImage = {
   height: number;
   /** 지면에 들어가지 않아 선언한 폭보다 줄여 놓았는가. */
   scaledToFit: boolean;
+  /** `result`면 코드 블록의 GUI 실행 결과 자리다. 일반 이미지는 비어 있다. */
+  role?: "result";
 };
 
 /** 최종 쪽번호까지 붙은 보고용 항목. */

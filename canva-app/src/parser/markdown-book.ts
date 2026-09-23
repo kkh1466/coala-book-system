@@ -520,9 +520,10 @@ function parseConcept(rawPage: RawPage, id: string): ConceptPage {
   const titleIndex = firstHeadingIndex(lines, 1, rawPage, "페이지 제목");
   const calloutResult = extractCallout(lines);
   const contentLines = calloutResult.lines;
+  const fenced = fenceMask(contentLines);
   const sectionStarts = contentLines
     .map((line, index) => ({ line, index }))
-    .filter(({ line }) => /^##\s+/.test(line));
+    .filter(({ line, index }) => !fenced[index] && /^##\s+/.test(line));
   if (sectionStarts.length === 0) {
     throw new MarkdownBookParseError(
       "concept 페이지에는 하나 이상의 '## 소제목'이 필요합니다.",
@@ -883,8 +884,9 @@ function firstHeadingIndex(
   label: string,
 ): number {
   const marker = "#".repeat(level);
-  const index = lines.findIndex((line) =>
-    new RegExp(`^${marker}\\s+`).test(line),
+  const fenced = fenceMask(lines);
+  const index = lines.findIndex(
+    (line, at) => !fenced[at] && new RegExp(`^${marker}\\s+`).test(line),
   );
   if (index < 0) {
     throw new MarkdownBookParseError(
@@ -896,7 +898,10 @@ function firstHeadingIndex(
 }
 
 function headingIndex(lines: string[], level: number, text: string): number {
-  return lines.findIndex((line) => headingText(line, level).trim() === text);
+  const fenced = fenceMask(lines);
+  return lines.findIndex(
+    (line, at) => !fenced[at] && headingText(line, level).trim() === text,
+  );
 }
 
 function nextHeadingIndex(
@@ -905,9 +910,13 @@ function nextHeadingIndex(
   level: number,
 ): number {
   const marker = "#".repeat(level);
+  const fenced = fenceMask(lines);
   const relative = lines
     .slice(start)
-    .findIndex((line) => new RegExp(`^${marker}\\s+`).test(line));
+    .findIndex(
+      (line, at) =>
+        !fenced[start + at] && new RegExp(`^${marker}\\s+`).test(line),
+    );
   return relative < 0 ? -1 : start + relative;
 }
 
@@ -939,9 +948,11 @@ function paragraphText(lines: string[]): string {
  * 경계를 없앴고, 그 결과 페이지마다 줄글 한 덩어리만 남았다.
  */
 function blockText(lines: string[]): string {
+  const fenced = fenceMask(lines);
   const kept = lines
     .map((line) => line.replace(/\s+$/, ""))
-    .filter((line) => !/^\s*#{1,6}\s+/.test(line));
+    // 코드 펜스 안의 `# 주석`은 제목이 아니다. 펜스 안은 그대로 둔다.
+    .filter((line, index) => fenced[index] || !/^\s*#{1,6}\s+/.test(line));
   let start = 0;
   let end = kept.length;
   while (start < end && (kept[start] ?? "").trim().length === 0) {
@@ -951,6 +962,23 @@ function blockText(lines: string[]): string {
     end -= 1;
   }
   return kept.slice(start, end).join("\n");
+}
+
+/**
+ * 각 줄이 코드 펜스(```) 안에 있는지 표시한다. 펜스 줄 자체도 안으로 친다.
+ *
+ * 파이썬 주석 `# ...`이나 `## ...`은 Markdown 제목과 모양이 같으므로, 제목을
+ * 찾는 모든 곳은 이 표시로 펜스 안을 건너뛴다.
+ */
+function fenceMask(lines: readonly string[]): boolean[] {
+  let inside = false;
+  return lines.map((line) => {
+    if (/^\s*```/.test(line)) {
+      inside = !inside;
+      return true;
+    }
+    return inside;
+  });
 }
 
 function bulletItems(lines: string[]): string[] {

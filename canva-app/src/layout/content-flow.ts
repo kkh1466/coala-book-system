@@ -15,6 +15,7 @@ import { createRichText } from "../builder/element-factory";
 import type { FlowItem, PlacedItem } from "./flow";
 import { imagePlaceholderItem } from "./image-placeholder";
 import { lineHeight, measureText } from "./measure";
+import { codeItems } from "./code-block";
 import { promptItem, responseItems } from "./prompt-response";
 
 /**
@@ -38,6 +39,19 @@ const { colors } = coalaTheme;
 /** 본문 두 줄 높이. 제목이 페이지 하단에 홀로 남지 않게 하는 기준. */
 export function twoBodyLines(): number {
   return lineHeight(TYPOGRAPHY.body, LINE_HEIGHT.global) * 2;
+}
+
+/**
+ * 상자 바로 위의 소제목이 상자와 함께 다음 페이지로 넘어올 때 차지하는 높이.
+ *
+ * `flowIntoPages`는 `keepWithNext`가 걸린 제목을 다음 페이지로 함께 넘긴 뒤
+ * 그 아래 조각의 높이를 다시 검사하지 않는다. 지면 하나에 가깝게 커질 수 있는
+ * 상자(코드·응답)는 이 몫을 상한에서 미리 빼 두어야 안전 영역을 넘지 않는다.
+ */
+export function carriedHeadingReserve(): number {
+  return (
+    lineHeight(TYPOGRAPHY.sectionTitle, LINE_HEIGHT.global) + GAP.afterHeading
+  );
 }
 
 /** 문단 하나를 조각으로 만든다. 강조 구간은 굵기와 색만 바뀐다. */
@@ -250,6 +264,8 @@ function gapBefore(next: ContentBlock | undefined, isLast: boolean): number {
       return GAP.beforeImage;
     case "prompt":
       return GAP.beforePrompt;
+    case "code":
+      return GAP.beforeCode;
     case "list":
       return GAP.beforeList;
     default:
@@ -297,6 +313,16 @@ export function blockFlowItems(
       return;
     }
 
+    if (block.kind === "code") {
+      items.push(
+        ...codeItems(block, style, {
+          gapAfter: isLast ? 0 : GAP.afterCode,
+          maxHeight: options.maxItemHeight,
+        }),
+      );
+      return;
+    }
+
     if (block.kind === "response") {
       // 프롬프트 상자는 응답 상자와 함께 넘어가므로, 첫 응답 상자는 프롬프트
       // 상자와 같은 페이지에 들어갈 수 있는 높이여야 한다.
@@ -338,7 +364,9 @@ export function blockFlowItems(
           block.ordered ? `${itemIndex + 1}.` : DISC,
           style,
           lastItem
-            ? next?.kind === "image" || next?.kind === "prompt"
+            ? next?.kind === "image" ||
+              next?.kind === "prompt" ||
+              next?.kind === "code"
               ? gapBefore(next, isLast)
               : isLast
                 ? 0

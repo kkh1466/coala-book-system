@@ -5,6 +5,7 @@ import {
 } from "./image-directive";
 import type { InlineSegment } from "./inline";
 import { parseInline } from "./inline";
+import { findFenceClose, scanResultsAfter } from "./code-result";
 
 /**
  * 원고의 Markdown 구조를 그대로 담은 블록.
@@ -28,10 +29,27 @@ export type ContentBlock =
    * AI의 응답. 문단과 목록을 담은 Markdown 원문이다. 렌더러가 `parseBlocks`로
    * 다시 읽는다. 원고 검사가 프롬프트 바로 다음에만 오도록 보장한다.
    */
-  | { kind: "response"; markdown: string };
+  | { kind: "response"; markdown: string }
+  /**
+   * 코드. 줄과 들여쓰기가 그대로 보존된 평문이다. `language`는 펜스에 적은
+   * 이름(소문자)이고, 적지 않았으면 빈 문자열이다. `result`는 바로 뒤에 붙은
+   * 실행 결과다. 원고 검사가 정확히 하나를 보장하므로 없는 경우는 검사를 거치지
+   * 않은 원고뿐이다.
+   */
+  | { kind: "code"; language: string; code: string; result?: CodeResult };
+
+/** 코드 블록의 실행 결과. 텍스트 출력이거나 GUI 화면 자리다. */
+export type CodeResult =
+  | { kind: "text"; text: string }
+  | { kind: "image"; image: ImageDirective };
 
 /** `prompt`·`response` 코드 블록의 시작 줄. 그 밖의 펜스는 본문으로 남는다. */
-const DIALOGUE_FENCE = /^```(prompt|response)\s*$/;
+/**
+ * 코드 펜스의 시작 줄. `prompt`·`response`는 대화 상자, 그 밖의 이름(또는
+ * 이름 없음)은 코드 상자가 된다. `flowchart`는 flowchart 페이지 파서가 먼저
+ * 걷어 가므로 여기에 오지 않는다.
+ */
+const FENCE = /^```\s*([A-Za-z0-9_+#.-]*)\s*$/;
 
 const UNORDERED = /^\s*[-*+]\s+(?!\[[ xX]\])(.+)$/;
 const ORDERED = /^\s*(\d+)[.)]\s+(.+)$/;
@@ -94,23 +112,51 @@ export function parseBlocks(markdown: string): ContentBlock[] {
       continue;
     }
 
-    const fence = line.match(DIALOGUE_FENCE);
+    const fence = line.match(FENCE);
     if (fence) {
-      const close = lines.findIndex(
-        (candidate, at) => at > index && candidate.trim() === "```",
-      );
-      const end = close < 0 ? lines.length : close;
-      const inner = lines
-        .slice(index + 1, end)
-        .join("\n")
-        .trim();
+      const language = (fence[1] ?? "").toLowerCase();
+      const close = findFenceClose(lines, index + 1);
+      let end = close < 0 ? lines.length : close;
+      const innerLines = lines.slice(index + 1, end);
       flushParagraph();
       flushList();
-      blocks.push(
-        fence[1] === "prompt"
-          ? { kind: "prompt", text: inner }
-          : { kind: "response", markdown: inner },
-      );
+      if (language === "prompt") {
+        blocks.push({ kind: "prompt", text: innerLines.join("\n").trim() });
+      } else if (language === "response") {
+        blocks.push({
+          kind: "response",
+          markdown: innerLines.join("\n").trim(),
+        });
+      } else if (language === "output") {
+        // 앞선 코드가 소비하지 못한 output. 원고 검사가 거절하므로 버린다.
+      } else {
+        // 코드는 앞뒤 빈 줄만 걷어 내고 들여쓰기는 그대로 둔다. 실행 결과는
+        // 원고 검사와 같은 논리(`scanResultsAfter`)로 바로 뒤에서 찾는다.
+        const block: Extract<ContentBlock, { kind: "code" }> = {
+          kind: "code",
+          language,
+          code: trimBlankLines(innerLines).join("\n"),
+        };
+        if (close >= 0) {
+          const lookup = scanResultsAfter(lines, close + 1);
+          const [first] = lookup.results;
+          if (first?.kind === "output") {
+            block.result = { kind: "text", text: first.inner.join("\n") };
+          } else if (first?.kind === "image") {
+            const image = tryParseImageDirective(
+              (lines[first.line] ?? "").trim(),
+            );
+            if (image) {
+              block.result = { kind: "image", image };
+            }
+          }
+          if (lookup.results.length > 0) {
+            // 결과(들)를 소비한다. 둘 이상은 원고 검사가 거절한다.
+            end = lookup.next - 1;
+          }
+        }
+        blocks.push(block);
+      }
       index = end;
       continue;
     }
@@ -160,6 +206,19 @@ export function parseBlocks(markdown: string): ContentBlock[] {
   flushParagraph();
   flushList();
   return blocks;
+}
+
+/** 앞뒤의 빈 줄을 걷어 낸다. 줄 안의 공백(들여쓰기)은 건드리지 않는다. */
+function trimBlankLines(lines: readonly string[]): string[] {
+  let start = 0;
+  let end = lines.length;
+  while (start < end && (lines[start] ?? "").trim().length === 0) {
+    start += 1;
+  }
+  while (end > start && (lines[end - 1] ?? "").trim().length === 0) {
+    end -= 1;
+  }
+  return lines.slice(start, end).map((line) => line.replace(/\s+$/, ""));
 }
 
 /** 블록이 하나도 없는가. */

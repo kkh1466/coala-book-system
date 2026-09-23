@@ -8,7 +8,11 @@ import { LINE_HEIGHT, TYPOGRAPHY } from "../theme/typography";
 import { createRichText, createVectorShape } from "../builder/element-factory";
 import { roundedRectPath } from "../utils/geometry";
 import type { BlockFlowOptions, FlowStyle } from "./content-flow";
-import { blockFlowItems, twoBodyLines } from "./content-flow";
+import {
+  blockFlowItems,
+  carriedHeadingReserve,
+  twoBodyLines,
+} from "./content-flow";
 import type { FlowItem } from "./flow";
 import { lineHeight, measureText } from "./measure";
 
@@ -111,7 +115,12 @@ export function responseItems(
   const padding = PROMPT_BOX.responsePaddingY * 2;
   const maxInner = Math.max(
     1,
-    Math.floor(options.maxHeight - continuationReserve() - padding),
+    Math.floor(
+      options.maxHeight -
+        continuationReserve() -
+        carriedHeadingReserve() -
+        padding,
+    ),
   );
   // 응답 안에는 문단과 목록만 온다. 원고 검사가 나머지를 거절한다.
   const blocks = parseBlocks(markdown).filter(

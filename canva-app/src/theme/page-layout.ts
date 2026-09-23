@@ -74,6 +74,28 @@ export const GAP = {
   promptToResponse: 40,
   /** 응답 상자 다음에 다른 내용이 올 때. 원본: 상자 하단 1070 → 다음 제목 잉크 1116. */
   afterResponse: 44,
+  /** 글과 코드 상자 사이. 이미지 앞뒤 여백과 같다. */
+  beforeCode: 28,
+  afterCode: 28,
+} as const;
+
+/**
+ * 코드 상자. 원본 교재에 예시가 없어 앱이 정한 값이며, 강조 박스의 안쪽 여백과
+ * 모서리를 그대로 따른다. 글자 크기는 본문 28pt, 줄 간격은 전역값 2다.
+ */
+export const CODE_BOX = {
+  paddingX: 46,
+  paddingTop: 36,
+  paddingBottom: 36,
+  /** 언어 라벨과 코드 사이. */
+  afterLabel: 8,
+  radius: 24,
+  /** 탭 하나를 몇 칸으로 바꾸는가. */
+  tabWidth: 4,
+  /** 코드 상자와 그 아래 "실행 결과" 라벨 사이. */
+  beforeResultLabel: 28,
+  /** "실행 결과" 라벨과 결과 상자(또는 결과 이미지 자리) 사이. */
+  afterResultLabel: 8,
 } as const;
 
 /** 강조 박스 안쪽 여백. */

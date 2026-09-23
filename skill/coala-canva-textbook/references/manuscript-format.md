@@ -162,6 +162,74 @@ connections:
 :::
 ````
 
+## Code
+
+Write code as a fenced block with the language name, and **always follow it with exactly one execution result**. The app draws the code in a light grey rounded box with a language label, in a monospace font when the Canva account has one, at body size. Comments are grey and keywords are blue for Python and JavaScript; other languages, and a fence without a name, are drawn without colour.
+
+A text result (`print`, `console.log`) is an ```` ```output ```` block right after the code. It is drawn in a **second grey box below the code box**, with a blue `실행 결과` label between the two boxes, in the same monospace font at body size, without colouring:
+
+````markdown
+```python
+name = "코알라"
+print(f"안녕하세요, {name}")
+```
+
+```output
+안녕하세요, 코알라
+```
+````
+
+A GUI result is the existing image placeholder with `role="result"`, right after the code. It is drawn after the code box as a drop-target placeholder with the same blue `실행 결과` label above it, so the meaning stays after the screenshot is dropped in:
+
+````markdown
+```python
+import flet as ft
+
+def main(page):
+    page.add(ft.Text("안녕하세요"))
+
+ft.app(target=main)
+```
+
+::image{src="assets/ch01/hello-window.png" alt="안녕하세요 문구가 표시된 실행 창" ratio="16:9" role="result"}
+````
+
+Rules:
+
+- Allowed only on a `concept` page with `layout="basic"`, in the body under the page title. Rejected on card layouts, inside a callout, and on every other page type. `output` blocks and `role="result"` images follow the same rule.
+- Every ordinary code block must have exactly one result directly after it: an `output` block or a `role="result"` image, with nothing but blank lines between. `prompt`, `response`, and `flowchart` fences are not code and take no result.
+- Rejected with the row number: a code block without a result; an `output` block or a `role="result"` image without a code block before it; body text, a heading, or a list between the code and its result; two results, or an `output` block and a result image together; an empty `output` block; a heading, list, image directive, or fence inside an `output` block.
+- An image directive without `role` is an ordinary image and keeps working as before. `ratio`, `width`, and `caption` work on a result image as on any image; the `실행 결과` label sits above the placeholder and a caption under it.
+- Use ```` ``` ```` fences. `~~~` is rejected. A code block may not be empty and must be closed.
+- Indentation is kept exactly as written, in both code and output, and a tab becomes four spaces. Trailing spaces are removed.
+- Do not write inline code in backticks in body text; name the identifier in bold instead.
+- Long code and long output are not shrunk. Each box is split at a line boundary and continues in another box on the next page: a continued code box is labelled `Python (계속)` inside, and a continued result box gets a blue `실행 결과 (계속)` label above it. The label always stays on the same page as the box below it. A result image that does not fit under its code moves whole to the next page, still directly after the code in reading order.
+- Body text at 28 pt fits about 52 monospace characters per line. A longer line wraps inside the box; break long lines in the source instead.
+
+Wrong examples, all rejected:
+
+````markdown
+```python
+print("안녕하세요")
+```
+
+다음 문단            ← 결과 없음: 코드 블록 뒤에 실행 결과가 없습니다.
+
+```output           ← 앞선 코드 없음: output 블록 앞에는 실행할 코드 블록이 있어야 합니다.
+안녕하세요
+```
+
+```python
+print("안녕하세요")
+```
+
+설명 문장            ← 사이의 본문: 코드 블록과 실행 결과 사이에는 다른 내용을 둘 수 없습니다.
+
+```output
+안녕하세요
+```
+````
+
 ## AI prompt and response
 
 Write the user's prompt and the AI's response as two fenced blocks, the response directly after the prompt with nothing but blank lines between them. The app draws the prompt in a pill-shaped outline and the response in a rounded outlined box, both at body size, following `assets/page-examples/ai-prompt-response.png`. The reference page's `+` and microphone icons are decoration and are not reproduced.
@@ -243,6 +311,7 @@ Write the directive as **one line with no closing line**. A line containing only
 
 | Attribute | Required | Meaning |
 | --- | --- | --- |
+| `role` | no | `result` marks the image as a code block's GUI execution result. It must directly follow a code block, and the app draws a permanent `실행 결과` label above the box. See "Code". |
 | `src` | yes | Planned file path, relative to the manuscript, under `assets/`. The file may not exist yet. URLs, absolute paths, and `..` are rejected. |
 | `alt` | yes | What the image shows. Used in the placeholder label and in the post-generation list. |
 | `ratio` | no | Width to height, as `16:9` or a decimal such as `1.5`. Allowed range 1:4 to 4:1. Defaults to `16:9`, and the post-generation list flags every placeholder that relied on the default. |
@@ -277,14 +346,13 @@ The parser rejects any syntax it cannot lay out. Earlier versions let these thro
 | `::image{...}` | See "Image placeholders". |
 | ```` ```flowchart ```` | `flowchart` pages only, one block. |
 | ```` ```prompt ```` + ```` ```response ```` | `concept` pages with `layout="basic"`, always as a pair. See "AI prompt and response". |
+| ```` ```python ```` and other fenced code + ```` ```output ```` or `role="result"` image | `concept` pages with `layout="basic"`, always as a pair. See "Code". |
 
-Rejected everywhere, with the manuscript row number: fenced code blocks other than `prompt`, `response`, and `flowchart`, inline code in backticks, links, Markdown images (`![]()`), HTML tags, strikethrough, horizontal rules, nested lists, plain `>` quotations, other callout kinds such as `[!CAUTION]`, `[!NOTE]`, and `[!WARNING]`, and headings deeper than the page type allows. On a `chapter-opening` page, text between the subtitle and `### 학습 목표` is rejected, and the learning objectives must be `- ` items only.
+Rejected everywhere, with the manuscript row number: `~~~` fences, empty or unclosed fences, inline code in backticks, links, Markdown images (`![]()`), HTML tags, strikethrough, horizontal rules, nested lists, plain `>` quotations, other callout kinds such as `[!CAUTION]`, `[!NOTE]`, and `[!WARNING]`, and headings deeper than the page type allows. On a `chapter-opening` page, text between the subtitle and `### 학습 목표` is rejected, and the learning objectives must be `- ` items only.
 
 `*기울임*` is reported as a warning rather than an error, because a sentence may use a literal asterisk. The asterisks are printed as written.
 
 Write plain text such as `<Button-1>`, `2 * 3 * 4`, `my_var_name`, and `__init__` as is. They are not mistaken for syntax.
-
-Code cannot be placed in a manuscript yet. Until a code block is implemented, do not paste code into paragraphs; leave the code out and report that it could not be placed.
 
 ## Page templates and content blocks
 

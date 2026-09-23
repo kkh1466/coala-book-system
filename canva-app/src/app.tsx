@@ -168,7 +168,8 @@ function PendingImagesReport({ result }: { result: CreateBookResult }) {
             {image.pageNumber ? `${image.pageNumber}쪽` : image.pageTitle} ·{" "}
             {image.src} · {image.width}×{image.height}px ({image.ratioLabel}
             {image.ratioDeclared ? "" : ", 비율 미지정 → 기본값"}
-            {image.scaledToFit ? ", 지면에 맞춰 축소" : ""}) — {image.alt}
+            {image.scaledToFit ? ", 지면에 맞춰 축소" : ""})
+            {image.role === "result" ? " · 실행 결과" : ""} — {image.alt}
           </Text>
         ))}
       </Rows>

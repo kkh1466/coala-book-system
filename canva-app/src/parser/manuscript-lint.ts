@@ -1,3 +1,8 @@
+import {
+  findCodeResultProblems,
+  isResultImageLine,
+  scanResultsAfter,
+} from "./code-result";
 import { isImageDirectiveLine } from "./image-directive";
 
 /**
@@ -41,6 +46,10 @@ export function lintPageBody(
   }
   // 카드 안에는 상자를 넣을 자리가 없다.
   const dialogueAllowed = rules.dialogue && (layout ?? "basic") === "basic";
+  const codeAllowed = rules.code && (layout ?? "basic") === "basic";
+  const codeForbiddenMessage = rules.code
+    ? '코드 블록은 concept layout="basic"에서만 쓸 수 있습니다. 카드 안에는 코드 상자를 둘 수 없습니다.'
+    : `${type} 페이지에는 코드 블록을 넣을 수 없습니다. concept 페이지로 옮겨 주세요.`;
 
   const issues: ManuscriptIssue[] = [];
   const report = (
@@ -50,6 +59,13 @@ export function lintPageBody(
   ) => {
     issues.push({ severity, message, line: firstLine + index });
   };
+
+  // 코드와 실행 결과의 짝은 파서·검증기와 같은 논리로 한 번에 검사한다.
+  if (codeAllowed) {
+    for (const problem of findCodeResultProblems(bodyLines)) {
+      report(problem.line, problem.message);
+    }
+  }
 
   const headingCounts = new Map<number, number>();
   // 제목이 아예 없는 페이지는 페이지 파서가 그 사유로 거절한다. 그때 모든 줄을
@@ -91,6 +107,7 @@ export function lintPageBody(
         type === "flowchart" && language === "flowchart" && !flowchartFenceSeen;
       const isDialogueFence =
         marker === "```" && (language === "prompt" || language === "response");
+      const isOutputFence = marker === "```" && language === "output";
 
       if (isFlowchartFence) {
         flowchartFenceSeen = true;
@@ -121,18 +138,45 @@ export function lintPageBody(
           (offset, message, severity) =>
             report(index + 1 + offset, message, severity),
         );
-      } else {
+      } else if (marker !== "```") {
         report(
           index,
-          type === "flowchart"
-            ? "flowchart 페이지에는 ```flowchart 블록 하나만 둘 수 있습니다."
-            : "코드 블록(```)은 아직 지원하지 않습니다. 그대로 두면 기호째로 본문에 찍힙니다.",
+          "코드 블록은 ```로 여닫아야 합니다. ~~~는 지원하지 않습니다.",
         );
+      } else if (type === "flowchart") {
+        report(
+          index,
+          "flowchart 페이지에는 ```flowchart 블록 하나만 둘 수 있습니다.",
+        );
+      } else if (!codeAllowed) {
+        report(index, codeForbiddenMessage);
+      } else if (isOutputFence) {
+        // 짝과 내용은 findCodeResultProblems가 이미 검사했다.
+      } else if (
+        bodyLines
+          .slice(index + 1, close < 0 ? bodyLines.length : close)
+          .every((inner) => inner.trim().length === 0)
+      ) {
+        report(index, "코드 블록이 비어 있습니다.");
       }
       if (close < 0) {
         report(index, `이 블록을 닫는 ${marker} 줄이 없습니다.`);
       }
       index = close < 0 ? bodyLines.length : close;
+      // 일반 코드 뒤에 붙은 실행 결과는 코드와 한 덩어리다. 그 줄들은 본문
+      // 문법 검사 대상이 아니므로 건너뛴다.
+      const isPlainCode =
+        marker === "```" &&
+        !isFlowchartFence &&
+        !isDialogueFence &&
+        !isOutputFence &&
+        type !== "flowchart";
+      if (isPlainCode && close >= 0) {
+        const lookup = scanResultsAfter(bodyLines, close + 1);
+        if (lookup.results.length > 0) {
+          index = lookup.next - 1;
+        }
+      }
       inCallout = false;
       continue;
     }
@@ -147,6 +191,12 @@ export function lintPageBody(
 
     // image 지시문은 validateImageDirectives가 위치와 형식을 모두 검증한다.
     if (isImageDirectiveLine(line)) {
+      if (isResultImageLine(line) && !codeAllowed) {
+        report(
+          index,
+          `${type} 페이지에는 실행 결과 이미지를 넣을 수 없습니다. concept 페이지의 코드 블록 바로 뒤에 작성해 주세요.`,
+        );
+      }
       inCallout = false;
       continue;
     }
@@ -382,6 +432,8 @@ type PageRules = {
   checklist: boolean;
   /** AI 프롬프트·응답 상자(```` ```prompt ````·```` ```response ````)를 놓을 수 있는가. */
   dialogue: boolean;
+  /** 코드 상자(```` ```python ```` 등)를 놓을 수 있는가. */
+  code: boolean;
 };
 
 const PAGE_RULES: Record<string, PageRules> = {
@@ -392,6 +444,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: false,
     checklist: false,
     dialogue: false,
+    code: false,
   },
   concept: {
     headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
@@ -399,6 +452,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: false,
     checklist: false,
     dialogue: true,
+    code: true,
   },
   comparison: {
     headings: { 1: 1 },
@@ -406,6 +460,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: true,
     checklist: false,
     dialogue: false,
+    code: false,
   },
   "practice-opening": {
     headings: { 1: 1 },
@@ -413,6 +468,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: false,
     checklist: true,
     dialogue: false,
+    code: false,
   },
   "practice-checklist": {
     headings: { 1: 1 },
@@ -420,6 +476,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: false,
     checklist: true,
     dialogue: false,
+    code: false,
   },
   "screenshot-guide": {
     headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
@@ -427,6 +484,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: false,
     checklist: false,
     dialogue: false,
+    code: false,
   },
   flowchart: {
     headings: { 1: 1 },
@@ -435,6 +493,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     table: false,
     checklist: false,
     dialogue: false,
+    code: false,
   },
 };
 

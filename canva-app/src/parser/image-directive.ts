@@ -26,6 +26,11 @@ export type ImageDirective = {
   width: ImageWidth;
   /** 자리 아래에 놓이는 실제 캡션. 이미지를 넣은 뒤에도 남는다. */
   caption?: string;
+  /**
+   * `result`면 코드 블록의 GUI 실행 결과다. 자리 위에 "실행 결과" 라벨이 영구히
+   * 놓이고, 코드 블록 바로 뒤에만 올 수 있다(`code-result.ts`).
+   */
+  role?: "result";
 };
 
 export class ImageDirectiveError extends Error {
@@ -43,7 +48,14 @@ const MAX_RATIO = 4;
 
 const DIRECTIVE_START = /^\s*::image(?![A-Za-z0-9_-])/;
 const DIRECTIVE_LINE = /^\s*::image\{(.*)\}\s*$/;
-const ALLOWED_KEYS = new Set(["src", "alt", "ratio", "width", "caption"]);
+const ALLOWED_KEYS = new Set([
+  "src",
+  "alt",
+  "ratio",
+  "width",
+  "caption",
+  "role",
+]);
 const ALLOWED_WIDTHS: readonly ImageWidth[] = ["text", "full", "half"];
 
 /** 이 줄이 이미지 지시자로 시작하는가. 형식이 맞는지는 따지지 않는다. */
@@ -88,7 +100,7 @@ function parseAttributes(source: string): Record<string, string> {
     }
     if (!ALLOWED_KEYS.has(key)) {
       throw new ImageDirectiveError(
-        `지원하지 않는 image 속성입니다: ${key} (src, alt, ratio, width, caption만 쓸 수 있습니다)`,
+        `지원하지 않는 image 속성입니다: ${key} (src, alt, ratio, width, caption, role만 쓸 수 있습니다)`,
       );
     }
     attributes[key] = value;
@@ -139,6 +151,12 @@ export function parseImageDirective(line: string): ImageDirective {
     );
   }
   const caption = attributes.caption?.trim();
+  const role = attributes.role?.trim();
+  if (role !== undefined && role !== "result") {
+    throw new ImageDirectiveError(
+      `image role은 result만 쓸 수 있습니다: ${role}`,
+    );
+  }
 
   return {
     src,
@@ -148,6 +166,7 @@ export function parseImageDirective(line: string): ImageDirective {
     ratioDeclared: Boolean(attributes.ratio?.trim()),
     width,
     ...(caption ? { caption } : {}),
+    ...(role === "result" ? { role: "result" as const } : {}),
   };
 }
 

@@ -58,6 +58,18 @@ type RichTextOptions = Pick<Box, "left" | "top" | "width"> & {
   textAlign?: "start" | "center" | "end" | "justify";
   lineHeightEm?: number;
   letterSpacingEm?: number;
+  /**
+   * 강조 구간과 별개로 색·굵기를 덮어쓸 구간. 코드 상자의 주석·키워드에 쓴다.
+   * 인덱스는 `text`(또는 이어 붙인 `segments`)의 UTF-16 위치다.
+   */
+  highlights?: readonly TextHighlight[];
+};
+
+export type TextHighlight = {
+  index: number;
+  length: number;
+  color?: string;
+  fontWeight?: FontWeightName;
 };
 
 export function createVectorShape({
@@ -116,6 +128,7 @@ export function createRichText({
   textAlign = "start",
   lineHeightEm = LINE_HEIGHT.global,
   letterSpacingEm = LETTER_SPACING_EM,
+  highlights = [],
 }: RichTextOptions): RichtextElementAtPoint {
   guardFontSize(role, fontSize);
   // 편집기 툴바에 `fontSize`pt가 그대로 찍히도록 px로 바꿔 보낸다.
@@ -161,6 +174,18 @@ export function createRichText({
       ...(emphasisWeight ? { fontWeight: emphasisWeight } : {}),
       ...(emphasisColor ? { color: emphasisColor } : {}),
     });
+  }
+  for (const highlight of highlights) {
+    if (highlight.length <= 0 || highlight.index + highlight.length > cursor) {
+      continue;
+    }
+    range.formatText(
+      { index: highlight.index, length: highlight.length },
+      {
+        ...(highlight.fontWeight ? { fontWeight: highlight.fontWeight } : {}),
+        ...(highlight.color ? { color: highlight.color } : {}),
+      },
+    );
   }
 
   return { type: "richtext", range, left, top, width };

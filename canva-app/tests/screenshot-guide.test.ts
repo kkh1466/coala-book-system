@@ -273,7 +273,7 @@ describe("보관된 따라하기 원고", () => {
     .filter((file) => /^guide-.*\.md$/.test(file));
   const invalidFiles = fs
     .readdirSync(path.join(inputDir, "invalid"))
-    .filter((file) => file.endsWith(".md"));
+    .filter((file) => /^guide-.*\.md$/.test(file));
 
   it.each(guideFiles)(
     "%s: 캡처 자리와 카드가 모두 안전 영역 안에 놓이고 자리 수가 원고와 같다",

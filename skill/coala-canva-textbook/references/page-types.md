@@ -138,6 +138,8 @@ No retained example yet.
 
 Show only the code needed for the current learning point. Label the language, separate code visually from prose, and explain the behavior nearby or on the next page. Do not fit a long complete program on one page by reducing type.
 
+The Coala Book Builder app draws a fenced code block on a `concept` page (see `manuscript-format.md` > "Code") as a light grey rounded box with a language label, 28 pt monospace text at line spacing 2, grey comments, and blue keywords. Every code block must carry exactly one execution result: a text result is drawn in a second grey box under a blue `실행 결과` label, and a GUI result is a `role="result"` image placeholder under the same blue label. Long code and output split at line boundaries across pages; the continuation label says whether code or output continues. Because no code page from the reference book is retained, this look was chosen by the app and is provisional until a reference page is supplied (`pending-values.md`).
+
 ## AI prompt and response
 
 Observed in the reference book's AI literacy and example pages. Reference example: `assets/page-examples/ai-prompt-response.png`.

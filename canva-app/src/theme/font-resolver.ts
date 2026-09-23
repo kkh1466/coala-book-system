@@ -44,7 +44,58 @@ export type ResolvedBookFonts = {
   regularWeight: FontWeightName;
   boldWeight: FontWeightName;
   source: FontSource;
+  /**
+   * 코드 상자에 쓸 고정폭 글꼴. 조회된 목록에 없으면 비워 두고, 코드 상자는
+   * 본문 글꼴로 그려진다. 본문 글꼴처럼 실제 적용으로 판정하지는 않는다.
+   */
+  code?: CodeFont;
 };
+
+export type CodeFont = {
+  familyName: string;
+  fontRef: FontRef;
+  regularWeight: FontWeightName;
+  boldWeight: FontWeightName;
+};
+
+/**
+ * 코드 상자용 고정폭 글꼴 후보. 앞이 우선이다.
+ *
+ * Canva의 Font에는 문자 집합 정보가 없어 한글 주석까지 담는지는 알 수 없다.
+ * 한글 주석은 Canva가 글꼴 대체로 그린다고 보고, 코드 자체의 가독성이 좋은
+ * 글꼴을 앞에 둔다.
+ */
+export const CODE_FONT_FAMILIES: readonly string[] = [
+  "JetBrains Mono",
+  "Source Code Pro",
+  "IBM Plex Mono",
+  "Roboto Mono",
+  "Fira Code",
+  "Noto Sans Mono",
+  "DM Mono",
+  "Space Mono",
+  "Inconsolata",
+  "Ubuntu Mono",
+  "Courier Prime",
+  "Anonymous Pro",
+  "PT Mono",
+  "Cousine",
+];
+
+/** 조회된 글꼴에서 코드용 고정폭 글꼴을 고른다. 없으면 undefined. */
+export function findCodeFont(fonts: readonly Font[]): CodeFont | undefined {
+  for (const family of CODE_FONT_FAMILIES) {
+    const font = findFontsByName(fonts, family)[0];
+    if (font) {
+      return {
+        familyName: font.name,
+        fontRef: font.ref,
+        ...pickWeights(font.weights),
+      };
+    }
+  }
+  return undefined;
+}
 
 /* -------------------------------------------------------------------------
  * 글꼴 이름 비교
@@ -93,15 +144,17 @@ const STYLE_WORDS: ReadonlySet<string> = new Set([
  * 유니코드 정규화 차이를 모두 흡수한다.
  */
 export function fontNameWords(name: string): string[] {
-  return name
-    .normalize("NFKC")
-    .replace(/[_\-–—]+/g, " ")
-    // "WantedSans" 같은 내부 이름을 "Wanted Sans"로 되돌린다.
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .toLocaleLowerCase("en")
-    .split(/\s+/)
-    .map((word) => word.replace(/[^\p{L}\p{N}]+/gu, ""))
-    .filter((word) => word.length > 0);
+  return (
+    name
+      .normalize("NFKC")
+      .replace(/[_\-–—]+/g, " ")
+      // "WantedSans" 같은 내부 이름을 "Wanted Sans"로 되돌린다.
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .toLocaleLowerCase("en")
+      .split(/\s+/)
+      .map((word) => word.replace(/[^\p{L}\p{N}]+/gu, ""))
+      .filter((word) => word.length > 0)
+  );
 }
 
 function stripTrailingStyleWords(words: string[]): string[] {
@@ -140,7 +193,9 @@ export function matchFontName(
   if (target.length === 0 || candidate.length === 0) {
     return "none";
   }
-  const startsWithTarget = target.every((word, index) => candidate[index] === word);
+  const startsWithTarget = target.every(
+    (word, index) => candidate[index] === word,
+  );
   if (startsWithTarget) {
     return candidate.length === target.length ? "exact" : "family";
   }
@@ -290,6 +345,8 @@ export type FontDiscoveryReport = {
   wantedSansInDesign: boolean;
   findFontsError?: string;
   designScanError?: string;
+  /** 코드 상자에 쓸 고정폭 글꼴. 못 찾으면 비어 있고 코드는 본문 글꼴로 그려진다. */
+  codeFontName?: string;
 };
 
 const toCandidate = (
@@ -333,6 +390,8 @@ export function buildFontCandidates(input: {
   designScanError?: string;
 }): { candidates: FontCandidate[]; report: FontDiscoveryReport } {
   const { listedFonts, designFonts = [] } = input;
+  // 코드 글꼴은 본문 글꼴 후보와 무관하게 하나만 고르고 모든 후보에 붙인다.
+  const code = findCodeFont([...listedFonts, ...designFonts]);
 
   const wantedFromList = findFontsByName(listedFonts, BOOK_FONT_FAMILY);
   const wantedFromDesign = findFontsByName(designFonts, BOOK_FONT_FAMILY);
@@ -349,7 +408,7 @@ export function buildFontCandidates(input: {
     if (key) {
       seenRefs.add(key);
     }
-    candidates.push(candidate);
+    candidates.push(code ? { ...candidate, code } : candidate);
   };
 
   for (const font of wantedFromList) {
@@ -420,6 +479,7 @@ export function buildFontCandidates(input: {
       wantedSansInDesign: wantedFromDesign.length > 0,
       findFontsError: input.findFontsError,
       designScanError: input.designScanError,
+      codeFontName: code?.familyName,
     },
   };
 }

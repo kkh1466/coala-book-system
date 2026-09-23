@@ -37,6 +37,12 @@ export const coalaTheme = {
      * 상자 안은 지면 배경색 그대로다(채움 없음).
      */
     promptStroke: "#737373",
+    /**
+     * 코드 상자. 원본 교재에 코드 페이지 예시가 없어 앱이 정한 값이다. 지면
+     * 배경(#F8F9FA)보다 한 단계 어둡고 Tip(#EAF1FF)·핵심 정리(#FFFAB3)와
+     * 구분되는 중립 회색. 주석은 secondaryText, 키워드는 primary를 쓴다.
+     */
+    codeFill: "#EEF1F5",
   },
   /**
    * 활자와 지면 치수는 여기 없다.

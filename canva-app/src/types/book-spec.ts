@@ -1,3 +1,5 @@
+import { findCodeResultProblems } from "../parser/code-result";
+
 export type BookSpec = {
   schemaVersion: 1;
   title: string;
@@ -268,6 +270,15 @@ function validateConceptPage(page: ConceptPage, pageIndex: number): void {
     if (!section.body && (!section.bullets || section.bullets.length === 0)) {
       throw new BookSpecValidationError(
         `${prefix}.sections[${index}] needs body or bullets.`,
+      );
+    }
+    // 코드와 실행 결과의 짝은 원고 검사와 같은 논리로 한 번 더 확인한다.
+    const [problem] = section.content
+      ? findCodeResultProblems(section.content.split("\n"))
+      : [];
+    if (problem) {
+      throw new BookSpecValidationError(
+        `${prefix}.sections[${index}]: ${problem.message}`,
       );
     }
   });
