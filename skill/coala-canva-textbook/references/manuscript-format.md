@@ -299,6 +299,32 @@ The description may come before or after the capture. Do not number the headings
 - Keep one action per step, and keep the instruction short: when the instruction and the capture together do not fit one page, generation stops with a manuscript error naming the step. Split the step instead of shortening the capture.
 - Callouts, tables, and checklists are not allowed on this page. Put a Tip on a following `concept` page.
 
+### Step process
+
+The text-only STEP card page of `assets/page-examples/process-steps.png`. One `## ` heading per step, each with at least one paragraph or list; no image placeholders (use `screenshot-guide` when every step needs a capture). Do not number the headings: the app renders `STEP n. <heading>` in order, and a heading beginning with `STEP 1.` is rejected. Callouts, tables, checklists, code, and prompt/response blocks are not allowed.
+
+```markdown
+:::page{type="step-process" id="bmi-design"}
+# BMI 앱 설계 예시
+
+지금까지 학습한 내용을 활용하여 BMI 건강 체크 앱을 설계해봅시다.
+
+## 입력 데이터 정하기
+
+사용자는 어떤 정보를 입력해야 할까요?
+
+- 키(cm)
+- 몸무게(kg)
+
+## 버튼 정하기
+
+- BMI 계산하기
+:::
+```
+
+- Each step is a white rounded card with the numbered title and its text; a down arrow sits between cards. A card is never split: one that does not fit moves whole to the next page under `제목(계속)`, with its arrow above it.
+- A step with no text is rejected: `단계 '…'에 내용이 없습니다. 이 단계에서 할 일이나 설명을 문장 또는 목록으로 작성해 주세요.` A step whose text does not fit one card stops generation with a manuscript error; split the step.
+
 ## Image placeholders
 
 Declare an image where it belongs in the manuscript, even when the file does not exist yet. The app reserves the exact space, marks it, and leaves it empty. The image is added later in Canva by dragging it onto the reserved box; nothing else on the page moves.
@@ -324,7 +350,7 @@ Rules:
 - The Canva editor itself can scale the box but cannot stretch it to another ratio. When the final image turns out to have a different ratio, change the box with the app's **이미지 자리 비율 바꾸기** panel before adding the image (see `image-guidelines.md`). The manuscript `ratio` still decides how much space is reserved when the book is generated, so set it as accurately as you can.
 - A placeholder is never split across pages. One that is taller than a page is scaled down with its ratio preserved, and the post-generation list says so.
 - Allowed positions: anywhere under the page title of a `concept` page with `layout="basic"`, in the body under the concept subsection heading of a `chapter-opening` page, and under each step heading of a `screenshot-guide` page, where exactly one is required per step.
-- Rejected positions, with the manuscript row number: `concept` pages with `layout="cards"`, `practice-opening`, `practice-checklist`, `comparison`, and `flowchart` pages, above the first step of a `screenshot-guide` page, inside a `>` callout, above a `concept` page title, and among the learning objectives of a `chapter-opening` page. Move the image to a following `concept` page instead.
+- Rejected positions, with the manuscript row number: `concept` pages with `layout="cards"`, `practice-opening`, `practice-checklist`, `comparison`, `flowchart`, and `step-process` pages, above the first step of a `screenshot-guide` page, inside a `>` callout, above a `concept` page title, and among the learning objectives of a `chapter-opening` page. Move the image to a following `concept` page instead.
 - Do not use a placeholder for a flowchart. Flowcharts follow `flowcharts.md`.
 
 After generation the app lists every placeholder with its page number, planned file, reserved pixel size, and ratio. Preparing each image at that pixel size avoids cropping.
@@ -336,7 +362,7 @@ The parser rejects any syntax it cannot lay out. Earlier versions let these thro
 | Syntax | Where it is allowed |
 | --- | --- |
 | `#` page title | Exactly one per page, at the start of a line. Nothing may be written above it. |
-| `##` | `chapter-opening` (one, the subtitle), `concept` (any number, the section headings), and `screenshot-guide` (one per step, without a `STEP n.` prefix). |
+| `##` | `chapter-opening` (one, the subtitle), `concept` (any number, the section headings), and `screenshot-guide`/`step-process` (one per step, without a `STEP n.` prefix). |
 | `###` | `chapter-opening` only: `### 학습 목표` and one concept subsection heading. |
 | Paragraphs, `- ` lists, `1. ` lists | Body text. Lists are one level deep. |
 | `**강조**` | The only inline formatting. |
@@ -360,7 +386,7 @@ Treat `tip`, `key-point`, tables, checklists, images, code, and prompt-response 
 
 ## Not implemented: do not write these
 
-The seven page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `cover`, `toc`, `divider`, `step-process`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` is rejected as well. A person adds the cover, contents, and divider pages in Canva after generation.
+The eight page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `cover`, `toc`, `divider`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` is rejected as well. A person adds the cover, contents, and divider pages in Canva after generation.
 
 ## Validating a manuscript
 

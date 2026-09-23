@@ -176,6 +176,8 @@ Observed as `따라해보기` content. Reference example: `assets/page-examples/
 
 Break the task into readable actions with an input, action, and expected visible result. Keep screenshots large enough to read. Continue on another page instead of placing an entire implementation sequence on one page.
 
+The Coala Book Builder app renders this as the `step-process` page type (see `manuscript-format.md` > "Step process"): the same STEP cards and down arrows as `process-steps.png`, text only, one required paragraph or list per step and no image placeholders. It shares its card layout with `screenshot-guide`.
+
 ## Practice-objective checklist
 
 Reference example: `assets/page-examples/practice-objectives.png`.

@@ -11,6 +11,7 @@ import type {
   PracticeChecklistPage,
   PracticeOpeningPage,
   ScreenshotGuidePage,
+  StepProcessPage,
 } from "../types/book-spec";
 import {
   BookSpecValidationError,
@@ -376,7 +377,9 @@ function parsePage(rawPage: RawPage): BookPage {
     case "flowchart":
       return parseFlowchart(rawPage, id);
     case "screenshot-guide":
-      return parseScreenshotGuide(rawPage, id);
+      return parseStepPage(rawPage, id, "screenshot-guide");
+    case "step-process":
+      return parseStepPage(rawPage, id, "step-process");
     default:
       throw new MarkdownBookParseError(
         `지원하지 않는 페이지 형식입니다: ${type}`,
@@ -441,6 +444,11 @@ function validateImageDirectives(rawPage: RawPage, type: string): void {
     case "screenshot-guide":
       allowedAfter = lines.findIndex((line) => /^##\s+/.test(line));
       break;
+    case "step-process":
+      return fail(
+        first,
+        "step-process 페이지에는 image를 넣을 수 없습니다. 화면 캡처가 필요한 따라하기는 screenshot-guide 페이지를 쓰세요.",
+      );
     case "comparison":
     case "practice-opening":
     case "practice-checklist":
@@ -665,18 +673,18 @@ function parsePracticeChecklist(
 }
 
 /**
- * 스크린샷 따라하기 페이지.
+ * STEP 카드 페이지(`screenshot-guide`, `step-process`).
  *
- * `## ` 하나가 단계 하나다. 단계마다 화면 캡처 자리(`::image`)가 정확히
- * 하나, 그리고 캡처와 별개인 설명(문단이나 목록)이 하나 이상 있어야 한다.
- * 캡처 없는 단계는 글만 남아 따라 할 수 없고, 둘 이상이면 한 단계에 두 동작이
- * 섞인 것이므로 단계를 나누게 한다. 설명 없는 단계는 학습자가 무엇을 해야
- * 하는지 알 수 없다. 판별은 BookSpec 검증과 같은 `analyzeStepContent`를 쓴다.
+ * `## ` 하나가 단계 하나다. 두 종류 모두 단계마다 설명(문단이나 목록)이 하나
+ * 이상 있어야 한다. `screenshot-guide`는 화면 캡처 자리(`::image`)가 정확히
+ * 하나 더 있어야 하고, `step-process`는 캡처 자리를 둘 수 없다. 판별은
+ * BookSpec 검증과 같은 `analyzeStepContent`를 쓴다.
  */
-function parseScreenshotGuide(
+function parseStepPage(
   rawPage: RawPage,
   id: string,
-): ScreenshotGuidePage {
+  type: "screenshot-guide" | "step-process",
+): ScreenshotGuidePage | StepProcessPage {
   const lines = rawPage.body.split("\n");
   const titleIndex = firstHeadingIndex(lines, 1, rawPage, "페이지 제목");
   const stepStarts = lines
@@ -684,7 +692,7 @@ function parseScreenshotGuide(
     .filter(({ line }) => /^##\s+/.test(line));
   if (stepStarts.length === 0) {
     throw new MarkdownBookParseError(
-      "screenshot-guide 페이지에는 하나 이상의 '## 단계 제목'이 필요합니다.",
+      `${type} 페이지에는 하나 이상의 '## 단계 제목'이 필요합니다.`,
       rawPage.startLine,
     );
   }
@@ -698,28 +706,34 @@ function parseScreenshotGuide(
     const stepLines = lines.slice(index + 1, end);
     const title = headingText(line, 2);
     const { imageLines, descriptionLines } = analyzeStepContent(stepLines);
-    if (imageLines.length === 0) {
+    if (type === "screenshot-guide") {
+      if (imageLines.length === 0) {
+        throw new MarkdownBookParseError(
+          `단계 '${title}'에 화면 캡처 자리(::image{...})가 없습니다. 따라하기의 모든 단계에는 캡처가 하나 있어야 합니다.`,
+          lineOf(line),
+        );
+      }
+      if (imageLines.length > 1) {
+        throw new MarkdownBookParseError(
+          `단계 '${title}'에 화면 캡처 자리가 ${imageLines.length}개입니다. 한 단계에는 하나만 두고, 동작이 둘이면 단계를 나눠 주세요.`,
+          lineOf(stepLines[imageLines[1] ?? 0] ?? ""),
+        );
+      }
+      if (descriptionLines.length === 0) {
+        throw new MarkdownBookParseError(
+          `단계 '${title}'에 설명이 없습니다. 이미지와 함께 수행할 행동이나 화면 설명을 문장 또는 목록으로 작성해 주세요.`,
+          lineOf(line),
+        );
+      }
+    } else if (descriptionLines.length === 0) {
       throw new MarkdownBookParseError(
-        `단계 '${title}'에 화면 캡처 자리(::image{...})가 없습니다. 따라하기의 모든 단계에는 캡처가 하나 있어야 합니다.`,
-        lineOf(line),
-      );
-    }
-    if (imageLines.length > 1) {
-      throw new MarkdownBookParseError(
-        `단계 '${title}'에 화면 캡처 자리가 ${imageLines.length}개입니다. 한 단계에는 하나만 두고, 동작이 둘이면 단계를 나눠 주세요.`,
-        lineOf(stepLines[imageLines[1] ?? 0] ?? ""),
-      );
-    }
-    if (descriptionLines.length === 0) {
-      throw new MarkdownBookParseError(
-        `단계 '${title}'에 설명이 없습니다. 이미지와 함께 수행할 행동이나 화면 설명을 문장 또는 목록으로 작성해 주세요.`,
+        `단계 '${title}'에 내용이 없습니다. 이 단계에서 할 일이나 설명을 문장 또는 목록으로 작성해 주세요.`,
         lineOf(line),
       );
     }
     return { title, content: blockText(stepLines) };
   });
-  return {
-    type: "screenshot-guide",
+  const shared = {
     id,
     title: headingText(lines[titleIndex] ?? "", 1),
     introduction:
@@ -727,6 +741,9 @@ function parseScreenshotGuide(
       undefined,
     steps,
   };
+  return type === "screenshot-guide"
+    ? { type, ...shared }
+    : { type, ...shared };
 }
 
 function parseFlowchart(rawPage: RawPage, id: string): BookPage {

@@ -10,6 +10,7 @@ import { layoutComparison } from "../page-types/comparison";
 import { layoutPracticeOpening } from "../page-types/practice-opening";
 import { layoutPracticeChecklist } from "../page-types/practice-checklist";
 import { layoutScreenshotGuide } from "../page-types/screenshot-guide";
+import { layoutStepProcess } from "../page-types/step-process";
 import type { PagePart } from "../page-types/page-part";
 import { buildPageNumber } from "../page-types/shared";
 
@@ -50,6 +51,8 @@ export function layoutPage(
       return layoutFlowchart(page, fonts);
     case "screenshot-guide":
       return layoutScreenshotGuide(page, fonts);
+    case "step-process":
+      return layoutStepProcess(page, fonts);
     default:
       throw new Error(
         `지원하지 않는 페이지 형식입니다: ${String(

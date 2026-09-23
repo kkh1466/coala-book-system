@@ -28,7 +28,8 @@ export type BookPage =
   | PracticeOpeningPage
   | PracticeChecklistPage
   | FlowchartPage
-  | ScreenshotGuidePage;
+  | ScreenshotGuidePage
+  | StepProcessPage;
 
 export type ChapterOpeningPage = PageBase & {
   type: "chapter-opening";
@@ -113,6 +114,19 @@ export type GuideStep = {
  */
 export type ScreenshotGuidePage = PageBase & {
   type: "screenshot-guide";
+  title: string;
+  introduction?: string;
+  steps: GuideStep[];
+};
+
+/**
+ * 단계별 진행 페이지.
+ *
+ * 원본 process-steps.png 그대로, 캡처 없이 글만으로 STEP 카드를 잇는다.
+ * 단계마다 설명(문단·목록)이 하나 이상 있어야 하고 이미지 자리는 둘 수 없다.
+ */
+export type StepProcessPage = PageBase & {
+  type: "step-process";
   title: string;
   introduction?: string;
   steps: GuideStep[];
@@ -230,6 +244,9 @@ export function validateBookPage(page: BookPage, pageIndex: number): void {
       break;
     case "screenshot-guide":
       validateScreenshotGuidePage(page, pageIndex);
+      break;
+    case "step-process":
+      validateStepProcessPage(page, pageIndex);
       break;
     default: {
       const unknownPage: never = page;
@@ -389,6 +406,34 @@ function validateScreenshotGuidePage(
     if (descriptionLines.length === 0) {
       throw new BookSpecValidationError(
         `${prefix}.steps[${index}] needs a paragraph or list besides the image.`,
+      );
+    }
+  });
+}
+
+function validateStepProcessPage(
+  page: StepProcessPage,
+  pageIndex: number,
+): void {
+  const prefix = `pages[${pageIndex}]`;
+  requireText(page.title, `${prefix}.title`);
+  if (!Array.isArray(page.steps) || page.steps.length === 0) {
+    throw new BookSpecValidationError(`${prefix}.steps must not be empty.`);
+  }
+  page.steps.forEach((step, index) => {
+    requireText(step.title, `${prefix}.steps[${index}].title`);
+    requireText(step.content, `${prefix}.steps[${index}].content`);
+    const { imageLines, descriptionLines } = analyzeStepContent(
+      step.content.split("\n"),
+    );
+    if (imageLines.length > 0) {
+      throw new BookSpecValidationError(
+        `${prefix}.steps[${index}] must not contain an image; use screenshot-guide for captures.`,
+      );
+    }
+    if (descriptionLines.length === 0) {
+      throw new BookSpecValidationError(
+        `${prefix}.steps[${index}] needs a paragraph or list.`,
       );
     }
   });

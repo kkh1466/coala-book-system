@@ -246,7 +246,7 @@ export function lintPageBody(
         titleSeen = true;
       }
       if (
-        type === "screenshot-guide" &&
+        (type === "screenshot-guide" || type === "step-process") &&
         level === 2 &&
         /^STEP\s*\d/i.test(line.replace(/^##\s+/, ""))
       ) {
@@ -479,6 +479,14 @@ const PAGE_RULES: Record<string, PageRules> = {
     code: false,
   },
   "screenshot-guide": {
+    headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
+    callout: false,
+    table: false,
+    checklist: false,
+    dialogue: false,
+    code: false,
+  },
+  "step-process": {
     headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
     callout: false,
     table: false,
