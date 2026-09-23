@@ -41,11 +41,13 @@ export function advanceEm(character: string): number {
     return 1;
   }
   if (FULL_WIDTH.test(character)) {
-    // 한글은 이름과 달리 정사각 한 칸(1em)을 다 쓰지 않는다. 원본 caution-box.png의
-    // 본문 네 줄에서 한글 폭을 역산하면 모두 0.83em이었다(Wanted Sans 28pt).
-    // 1em으로 잡으면 줄 수를 13~18% 과대 추정해 상자 아래에 빈 줄만큼 여백이
-    // 남는다. 0.85는 그 측정값에 2% 남짓의 여유를 더한 값이다.
-    return 0.85;
+    // 한글은 정사각 한 칸(1em)을 다 쓰지 않지만, 잉크 폭만 재면 글자 좌우
+    // 여백(side bearing)이 빠져 너무 작게 나온다. 원본 PNG의 잉크 폭은 0.83em,
+    // 실제로 생성한 표에서 한 줄에 들어간 글자 수로 역산한 **전진 폭**은 약
+    // 0.93em이었다(Wanted Sans 28pt). 1em은 줄 수를 과대 추정해 상자 아래에
+    // 빈 줄이 남고, 0.85em은 과소 추정해 글이 칸을 넘친다. 0.95는 전진 폭에
+    // 2% 남짓의 여유를 더한 값이다.
+    return 0.95;
   }
   if (NARROW_PUNCTUATION.test(character)) {
     return 0.32;

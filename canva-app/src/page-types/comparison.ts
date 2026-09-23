@@ -145,9 +145,24 @@ export function layoutComparison(
 
   return pages.map((placed, index) => ({
     title: continuedTitle(page.title, index),
-    elements:
+    elements: textAboveCells(
       index === 0
         ? renderPlaced(placed)
         : renderPlaced(withContinuationHeading(placed, page.title, wide)),
+    ),
   }));
+}
+
+/**
+ * 칸 도형을 모두 먼저, 글은 그 위에 놓는다.
+ *
+ * 행마다 도형과 글을 번갈아 만들면 위 행의 글이 한 줄이라도 넘칠 때 아래 행의
+ * 흰 칸에 가려져 잘린 것처럼 보인다. 줄 수 추정이 어긋나더라도 글이 보이도록
+ * 쌓임 순서만 바꾼다. 요소의 위치와 크기는 그대로다.
+ */
+function textAboveCells(elements: readonly ElementAtPoint[]): ElementAtPoint[] {
+  return [
+    ...elements.filter((element) => element.type !== "richtext"),
+    ...elements.filter((element) => element.type === "richtext"),
+  ];
 }
