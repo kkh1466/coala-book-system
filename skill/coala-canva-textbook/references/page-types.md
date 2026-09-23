@@ -130,6 +130,8 @@ Reference example: `assets/page-examples/step-by-step-guide.png`.
 
 Use one clear action per step. Show a readable screenshot and only the instruction needed for that action. Highlight the target control when the source image permits it. Split multiple screens across pages rather than shrinking them.
 
+The Coala Book Builder app renders this as the `screenshot-guide` page type (see `manuscript-format.md` > "Screenshot guide"): the STEP cards and down arrows of `process-steps.png`, each card holding one required capture placeholder at the card's inner width and at least one required paragraph or list describing the action; the manuscript is rejected when a step has only a capture. Cards move whole to the next page rather than splitting.
+
 ## Code explanation
 
 No retained example yet.

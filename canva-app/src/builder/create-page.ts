@@ -9,6 +9,7 @@ import { layoutConcept } from "../page-types/concept";
 import { layoutComparison } from "../page-types/comparison";
 import { layoutPracticeOpening } from "../page-types/practice-opening";
 import { layoutPracticeChecklist } from "../page-types/practice-checklist";
+import { layoutScreenshotGuide } from "../page-types/screenshot-guide";
 import type { PagePart } from "../page-types/page-part";
 import { buildPageNumber } from "../page-types/shared";
 
@@ -47,6 +48,8 @@ export function layoutPage(
       // 순서도는 그리지 않는다. 자리를 비워 두고 사용자가 Canva에서 지정된
       // 요소로 직접 만든다. 대체 도형으로 흉내 내지 않는다.
       return layoutFlowchart(page, fonts);
+    case "screenshot-guide":
+      return layoutScreenshotGuide(page, fonts);
     default:
       throw new Error(
         `지원하지 않는 페이지 형식입니다: ${String(

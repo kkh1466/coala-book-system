@@ -25,7 +25,8 @@ export type BookPage =
   | ComparisonPage
   | PracticeOpeningPage
   | PracticeChecklistPage
-  | FlowchartPage;
+  | FlowchartPage
+  | ScreenshotGuidePage;
 
 export type ChapterOpeningPage = PageBase & {
   type: "chapter-opening";
@@ -90,6 +91,29 @@ export type PracticeChecklistPage = PageBase & {
   introduction?: string;
   items: string[];
   tip?: string;
+};
+
+/** 스크린샷 따라하기의 단계 하나. 번호는 렌더러가 순서대로 붙인다. */
+export type GuideStep = {
+  title: string;
+  /**
+   * 단계 본문의 Markdown 원문. 문단·목록과 이미지 자리(`::image{...}`) 하나를
+   * 담는다. 이미지가 정확히 하나여야 하며 원고 파서가 행 번호와 함께 거절한다.
+   */
+  content: string;
+};
+
+/**
+ * 스크린샷 따라하기 페이지.
+ *
+ * 원본 process-steps.png의 STEP 카드 구조에 step-by-step-guide.png의 화면
+ * 캡처를 합친 것이다. 단계마다 카드 하나, 카드 안에 캡처 자리 하나.
+ */
+export type ScreenshotGuidePage = PageBase & {
+  type: "screenshot-guide";
+  title: string;
+  introduction?: string;
+  steps: GuideStep[];
 };
 
 export type FlowchartNode = {
@@ -202,6 +226,9 @@ export function validateBookPage(page: BookPage, pageIndex: number): void {
     case "flowchart":
       validateFlowchartPage(page, pageIndex);
       break;
+    case "screenshot-guide":
+      validateScreenshotGuidePage(page, pageIndex);
+      break;
     default: {
       const unknownPage: never = page;
       throw new BookSpecValidationError(
@@ -294,6 +321,66 @@ function validatePracticeChecklistPage(
   const prefix = `pages[${pageIndex}]`;
   requireText(page.title, `${prefix}.title`);
   requireTextArray(page.items, `${prefix}.items`);
+}
+
+/**
+ * 따라하기 단계 본문을 줄 단위로 분류한다.
+ *
+ * Markdown 파서와 BookSpec 검증이 **같은 판별**을 쓰기 위한 함수다. 이미지
+ * 자리 줄과 설명 줄을 따로 세어, 단계마다 이미지가 정확히 하나이고 설명이
+ * 하나 이상인지 두 경로가 같은 답을 내게 한다.
+ *
+ * 설명으로 치는 것: 문단이나 목록이 되는 줄. 치지 않는 것: 빈 줄, 제목 줄,
+ * 이미지 지시문 자체(`alt`·`caption`이 길어도 설명이 아니다).
+ */
+export function analyzeStepContent(lines: readonly string[]): {
+  /** 이미지 지시문이 있는 줄의 인덱스. */
+  imageLines: number[];
+  /** 설명(문단·목록)이 있는 줄의 인덱스. */
+  descriptionLines: number[];
+} {
+  const imageLines: number[] = [];
+  const descriptionLines: number[] = [];
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || /^#{1,6}\s+/.test(trimmed)) {
+      return;
+    }
+    if (/^::image\{/.test(trimmed)) {
+      imageLines.push(index);
+      return;
+    }
+    descriptionLines.push(index);
+  });
+  return { imageLines, descriptionLines };
+}
+
+function validateScreenshotGuidePage(
+  page: ScreenshotGuidePage,
+  pageIndex: number,
+): void {
+  const prefix = `pages[${pageIndex}]`;
+  requireText(page.title, `${prefix}.title`);
+  if (!Array.isArray(page.steps) || page.steps.length === 0) {
+    throw new BookSpecValidationError(`${prefix}.steps must not be empty.`);
+  }
+  page.steps.forEach((step, index) => {
+    requireText(step.title, `${prefix}.steps[${index}].title`);
+    requireText(step.content, `${prefix}.steps[${index}].content`);
+    const { imageLines, descriptionLines } = analyzeStepContent(
+      step.content.split("\n"),
+    );
+    if (imageLines.length !== 1) {
+      throw new BookSpecValidationError(
+        `${prefix}.steps[${index}] needs exactly one image, found ${imageLines.length}.`,
+      );
+    }
+    if (descriptionLines.length === 0) {
+      throw new BookSpecValidationError(
+        `${prefix}.steps[${index}] needs a paragraph or list besides the image.`,
+      );
+    }
+  });
 }
 
 function validateFlowchartPage(page: FlowchartPage, pageIndex: number): void {

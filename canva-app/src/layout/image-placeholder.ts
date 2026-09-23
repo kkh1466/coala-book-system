@@ -28,7 +28,7 @@ const LABEL_PADDING = { x: 40, y: 24 } as const;
  * 자리 하나가 지면보다 크면 나눌 수 없으므로 줄여서 넣는다. 그 상한을 잡을 때
  * 연속 페이지 제목(두 줄까지)이 차지할 높이를 미리 빼 둔다.
  */
-function continuationReserve(): number {
+export function continuationReserve(): number {
   return (
     lineHeight(TYPOGRAPHY.sectionTitle, LINE_HEIGHT.global) * 2 +
     GAP.afterHeading

@@ -10,9 +10,11 @@ import type {
   FlowchartNode,
   PracticeChecklistPage,
   PracticeOpeningPage,
+  ScreenshotGuidePage,
 } from "../types/book-spec";
 import {
   BookSpecValidationError,
+  analyzeStepContent,
   validateBookPage,
   validateBookSpec,
 } from "../types/book-spec";
@@ -373,6 +375,8 @@ function parsePage(rawPage: RawPage): BookPage {
       return parsePracticeChecklist(rawPage, id);
     case "flowchart":
       return parseFlowchart(rawPage, id);
+    case "screenshot-guide":
+      return parseScreenshotGuide(rawPage, id);
     default:
       throw new MarkdownBookParseError(
         `지원하지 않는 페이지 형식입니다: ${type}`,
@@ -389,6 +393,8 @@ function parsePage(rawPage: RawPage): BookPage {
  *
  * - concept(`layout="basic"`): 페이지 제목 아래 어디든
  * - chapter-opening: 학습 목표 다음 개념 소제목 아래
+ * - screenshot-guide: 각 단계(`## `) 아래. 단계마다 정확히 하나, 페이지
+ *   파서가 센다.
  */
 function validateImageDirectives(rawPage: RawPage, type: string): void {
   const lines = rawPage.bodyLines;
@@ -432,6 +438,9 @@ function validateImageDirectives(rawPage: RawPage, type: string): void {
         objectives < 0 ? -1 : nextHeadingIndex(lines, objectives + 1, 3);
       break;
     }
+    case "screenshot-guide":
+      allowedAfter = lines.findIndex((line) => /^##\s+/.test(line));
+      break;
     case "comparison":
     case "practice-opening":
     case "practice-checklist":
@@ -455,7 +464,9 @@ function validateImageDirectives(rawPage: RawPage, type: string): void {
         index,
         type === "concept"
           ? "image는 페이지 제목(#) 아래에 두어야 합니다."
-          : "chapter-opening의 image는 학습 목표 다음 개념 소제목(###) 아래에 두어야 합니다.",
+          : type === "screenshot-guide"
+            ? "screenshot-guide의 image는 단계 제목(##) 아래에 두어야 합니다."
+            : "chapter-opening의 image는 학습 목표 다음 개념 소제목(###) 아래에 두어야 합니다.",
       );
     }
     try {
@@ -649,6 +660,71 @@ function parsePracticeChecklist(
       ) || undefined,
     items,
     tip: calloutResult.callout?.text,
+  };
+}
+
+/**
+ * 스크린샷 따라하기 페이지.
+ *
+ * `## ` 하나가 단계 하나다. 단계마다 화면 캡처 자리(`::image`)가 정확히
+ * 하나, 그리고 캡처와 별개인 설명(문단이나 목록)이 하나 이상 있어야 한다.
+ * 캡처 없는 단계는 글만 남아 따라 할 수 없고, 둘 이상이면 한 단계에 두 동작이
+ * 섞인 것이므로 단계를 나누게 한다. 설명 없는 단계는 학습자가 무엇을 해야
+ * 하는지 알 수 없다. 판별은 BookSpec 검증과 같은 `analyzeStepContent`를 쓴다.
+ */
+function parseScreenshotGuide(
+  rawPage: RawPage,
+  id: string,
+): ScreenshotGuidePage {
+  const lines = rawPage.body.split("\n");
+  const titleIndex = firstHeadingIndex(lines, 1, rawPage, "페이지 제목");
+  const stepStarts = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => /^##\s+/.test(line));
+  if (stepStarts.length === 0) {
+    throw new MarkdownBookParseError(
+      "screenshot-guide 페이지에는 하나 이상의 '## 단계 제목'이 필요합니다.",
+      rawPage.startLine,
+    );
+  }
+  // 원고 행 번호: body는 앞뒤 빈 줄을 잘라냈으므로 bodyLines에서 다시 찾는다.
+  const lineOf = (content: string) => {
+    const at = rawPage.bodyLines.findIndex((raw) => raw === content);
+    return at < 0 ? rawPage.startLine : rawPage.startLine + 1 + at;
+  };
+  const steps = stepStarts.map(({ line, index }, position) => {
+    const end = stepStarts[position + 1]?.index ?? lines.length;
+    const stepLines = lines.slice(index + 1, end);
+    const title = headingText(line, 2);
+    const { imageLines, descriptionLines } = analyzeStepContent(stepLines);
+    if (imageLines.length === 0) {
+      throw new MarkdownBookParseError(
+        `단계 '${title}'에 화면 캡처 자리(::image{...})가 없습니다. 따라하기의 모든 단계에는 캡처가 하나 있어야 합니다.`,
+        lineOf(line),
+      );
+    }
+    if (imageLines.length > 1) {
+      throw new MarkdownBookParseError(
+        `단계 '${title}'에 화면 캡처 자리가 ${imageLines.length}개입니다. 한 단계에는 하나만 두고, 동작이 둘이면 단계를 나눠 주세요.`,
+        lineOf(stepLines[imageLines[1] ?? 0] ?? ""),
+      );
+    }
+    if (descriptionLines.length === 0) {
+      throw new MarkdownBookParseError(
+        `단계 '${title}'에 설명이 없습니다. 이미지와 함께 수행할 행동이나 화면 설명을 문장 또는 목록으로 작성해 주세요.`,
+        lineOf(line),
+      );
+    }
+    return { title, content: blockText(stepLines) };
+  });
+  return {
+    type: "screenshot-guide",
+    id,
+    title: headingText(lines[titleIndex] ?? "", 1),
+    introduction:
+      blockText(lines.slice(titleIndex + 1, stepStarts[0]?.index ?? 0)) ||
+      undefined,
+    steps,
   };
 }
 

@@ -86,6 +86,32 @@ export const CALLOUT_PADDING = {
 } as const;
 
 /**
+ * 스크린샷 따라하기의 STEP 카드. 원본 process-steps.png에서 잰 값이다.
+ *
+ * 카드는 흰색 채움에 테두리가 없고 모서리 반지름 72px, 카드 사이 100px 간격의
+ * 가운데에 아래쪽 화살표가 놓인다. 제목 "STEP 1. …"은 30pt 굵게, 본문은 28pt.
+ */
+export const STEP_CARD = {
+  radius: 72,
+  paddingX: 60,
+  /** 카드 위쪽 여백. 원본: 카드 상단 379 → 제목 잉크 444, 30pt 줄 상자 기준. */
+  paddingTop: 40,
+  paddingBottom: 48,
+  /** 제목과 본문 사이. 원본: 제목 잉크 444 → 첫 본문 잉크 554. */
+  afterTitle: 32,
+  /** 도입문과 첫 카드 사이. 원본: 도입문 잉크 하단 307 → 카드 상단 379. */
+  beforeFirst: 50,
+  /** 카드와 카드 사이. 화살표가 이 안에 놓인다. 원본: 966 → 1066. */
+  gap: 100,
+  arrow: {
+    width: 93,
+    height: 94,
+    shaftWidth: 48,
+    shaftHeight: 48,
+  },
+} as const;
+
+/**
  * AI 프롬프트·응답 상자. 원본 ai-prompt-response.png에서 잰 값이다.
  *
  * 프롬프트 상자는 높이의 절반을 반지름으로 하는 알약형이고(한 줄일 때 높이

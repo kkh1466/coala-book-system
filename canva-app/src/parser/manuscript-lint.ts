@@ -195,6 +195,16 @@ export function lintPageBody(
       if (level === 1) {
         titleSeen = true;
       }
+      if (
+        type === "screenshot-guide" &&
+        level === 2 &&
+        /^STEP\s*\d/i.test(line.replace(/^##\s+/, ""))
+      ) {
+        report(
+          index,
+          "단계 번호(STEP 1.)는 앱이 순서대로 붙입니다. 제목에는 동작만 적어 주세요.",
+        );
+      }
       if (type === "chapter-opening" && level === 3) {
         chapterZone = chapterZone === "head" ? "objectives" : "body";
       }
@@ -409,6 +419,13 @@ const PAGE_RULES: Record<string, PageRules> = {
     callout: true,
     table: false,
     checklist: true,
+    dialogue: false,
+  },
+  "screenshot-guide": {
+    headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
+    callout: false,
+    table: false,
+    checklist: false,
     dialogue: false,
   },
   flowchart: {

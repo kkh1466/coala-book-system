@@ -195,6 +195,42 @@ Rules:
 - A long response is not shrunk. The box is split at a paragraph or list-item boundary and continues in another box on the next page, under the `제목(계속)` heading. Keep only the part of the response that the learning purpose needs, and mark shortened or edited AI output in the text itself, as `content-writing.md` and `page-types.md` require.
 - The prompt box is never left alone at the bottom of a page; it moves to the next page with its response.
 
+### Screenshot guide
+
+One `## ` heading per step. Every step must contain **both** of the following, in the order the learner should read them:
+
+- exactly one `::image{...}` capture placeholder — a step without a capture, or with two, is rejected with its row number;
+- at least one description that is separate from the capture: a paragraph, or a `- `/`1. ` list, saying what the learner does or what the screen shows. The step heading, the image's `alt`, and its `caption` do not count. A step with only a capture is rejected before any Canva page is created: `단계 '템플릿 고르기'에 설명이 없습니다. 이미지와 함께 수행할 행동이나 화면 설명을 문장 또는 목록으로 작성해 주세요.`
+
+The description may come before or after the capture. Do not number the headings: the app renders each step as `STEP n. <heading>` in order, following `assets/page-examples/process-steps.png`, and a heading that begins with `STEP 1.` is rejected.
+
+```markdown
+:::page{type="screenshot-guide" id="new-project"}
+# 새 프로젝트 만들기
+
+아래 순서대로 따라 하며 첫 프로젝트를 만들어 봅시다.
+
+## 프로젝트 만들기 버튼 누르기
+
+첫 화면 오른쪽 위의 **새 프로젝트** 버튼을 누릅니다.
+
+::image{src="assets/guide/step-01.png" alt="첫 화면의 새 프로젝트 버튼" ratio="16:9"}
+
+## 프로젝트 이름 정하기
+
+::image{src="assets/guide/step-02.png" alt="프로젝트 이름 입력 창" ratio="16:9"}
+
+- 한글과 영문 모두 쓸 수 있습니다.
+- 띄어쓰기 대신 밑줄을 씁니다.
+:::
+```
+
+- Each step is a white rounded card with the step title, the instruction, and the capture box at the card's inner width. A down arrow sits between cards.
+- A card is never split. A card that does not fit moves whole to the next page under `제목(계속)`, with its arrow above it. A capture taller than the page is scaled down with its ratio kept, as on other pages.
+- Write the instruction as body text even when the capture seems self-explanatory; the `alt` is a label for the placeholder, not the lesson.
+- Keep one action per step, and keep the instruction short: when the instruction and the capture together do not fit one page, generation stops with a manuscript error naming the step. Split the step instead of shortening the capture.
+- Callouts, tables, and checklists are not allowed on this page. Put a Tip on a following `concept` page.
+
 ## Image placeholders
 
 Declare an image where it belongs in the manuscript, even when the file does not exist yet. The app reserves the exact space, marks it, and leaves it empty. The image is added later in Canva by dragging it onto the reserved box; nothing else on the page moves.
@@ -218,8 +254,8 @@ Rules:
 - `ratio` decides the reserved height, and Canva fills the box by cropping. **Declare the ratio of the final image.** A different ratio means the image is cropped.
 - The Canva editor itself can scale the box but cannot stretch it to another ratio. When the final image turns out to have a different ratio, change the box with the app's **이미지 자리 비율 바꾸기** panel before adding the image (see `image-guidelines.md`). The manuscript `ratio` still decides how much space is reserved when the book is generated, so set it as accurately as you can.
 - A placeholder is never split across pages. One that is taller than a page is scaled down with its ratio preserved, and the post-generation list says so.
-- Allowed positions: anywhere under the page title of a `concept` page with `layout="basic"`, and in the body under the concept subsection heading of a `chapter-opening` page.
-- Rejected positions, with the manuscript row number: `concept` pages with `layout="cards"`, `practice-opening`, `practice-checklist`, `comparison`, and `flowchart` pages, inside a `>` callout, above a `concept` page title, and among the learning objectives of a `chapter-opening` page. Move the image to a following `concept` page instead.
+- Allowed positions: anywhere under the page title of a `concept` page with `layout="basic"`, in the body under the concept subsection heading of a `chapter-opening` page, and under each step heading of a `screenshot-guide` page, where exactly one is required per step.
+- Rejected positions, with the manuscript row number: `concept` pages with `layout="cards"`, `practice-opening`, `practice-checklist`, `comparison`, and `flowchart` pages, above the first step of a `screenshot-guide` page, inside a `>` callout, above a `concept` page title, and among the learning objectives of a `chapter-opening` page. Move the image to a following `concept` page instead.
 - Do not use a placeholder for a flowchart. Flowcharts follow `flowcharts.md`.
 
 After generation the app lists every placeholder with its page number, planned file, reserved pixel size, and ratio. Preparing each image at that pixel size avoids cropping.
@@ -231,11 +267,11 @@ The parser rejects any syntax it cannot lay out. Earlier versions let these thro
 | Syntax | Where it is allowed |
 | --- | --- |
 | `#` page title | Exactly one per page, at the start of a line. Nothing may be written above it. |
-| `##` | `chapter-opening` (one, the subtitle) and `concept` (any number, the section headings). |
+| `##` | `chapter-opening` (one, the subtitle), `concept` (any number, the section headings), and `screenshot-guide` (one per step, without a `STEP n.` prefix). |
 | `###` | `chapter-opening` only: `### 학습 목표` and one concept subsection heading. |
 | Paragraphs, `- ` lists, `1. ` lists | Body text. Lists are one level deep. |
 | `**강조**` | The only inline formatting. |
-| `> [!TIP]`, `> [!KEY_POINT]` | One per page, on `concept`, `comparison`, `practice-opening`, and `practice-checklist`. The marker stands alone on its line, starting at column one; the text follows on `> ` lines directly below. |
+| `> [!TIP]`, `> [!KEY_POINT]` | One per page, on `concept`, `comparison`, `practice-opening`, and `practice-checklist`; not on `screenshot-guide`. The marker stands alone on its line, starting at column one; the text follows on `> ` lines directly below. |
 | Table | `comparison` pages only, one table. The introduction above it is sentences, not a list. Text below the table is rejected; use the callout. |
 | `- [ ]` checklist | `practice-opening` and `practice-checklist` only, written with `-`. |
 | `::image{...}` | See "Image placeholders". |
@@ -256,7 +292,7 @@ Treat `tip`, `key-point`, tables, checklists, images, code, and prompt-response 
 
 ## Not implemented: do not write these
 
-The six page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `cover`, `toc`, `divider`, `step-process`, `screenshot-guide`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` is rejected as well. A person adds the cover, contents, and divider pages in Canva after generation.
+The seven page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `cover`, `toc`, `divider`, `step-process`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` is rejected as well. A person adds the cover, contents, and divider pages in Canva after generation.
 
 ## Validating a manuscript
 
