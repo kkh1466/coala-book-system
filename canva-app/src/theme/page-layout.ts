@@ -77,6 +77,28 @@ export const GAP = {
   /** 글과 코드 상자 사이. 이미지 앞뒤 여백과 같다. */
   beforeCode: 28,
   afterCode: 28,
+  /** 글과 가로 흐름 사이. */
+  beforeFlow: 28,
+  /** 가로 흐름 다음에 글이 올 때. 원본: 카드 하단 472 → 다음 글 상자 상단 약 529. */
+  afterFlow: 44,
+} as const;
+
+/**
+ * 가로 흐름 카드. 원본 caution-box.png에서 잰 값이다.
+ *
+ * 카드 4개일 때 폭 270px, 간격 64px, 높이 183px, 모서리 8px. 카드 사이 4px 선은
+ * 양쪽 가장자리에서 10px 떨어져 있다. 글은 본문 28pt 두 줄(제목·부제)이다.
+ */
+export const FLOW_STRIP = {
+  gap: 64,
+  radius: 8,
+  paddingX: 16,
+  /** 위아래 안쪽 여백. 두 줄(≈150px) + 16 × 2 ≈ 183. */
+  paddingY: 16,
+  connector: {
+    weight: 4,
+    inset: 10,
+  },
 } as const;
 
 /**
@@ -105,6 +127,15 @@ export const CALLOUT_PADDING = {
   bottom: 36,
   /** 박스 제목과 본문 사이 */
   afterTitle: 18,
+  /**
+   * 글 요소의 폭을 안쪽 너비보다 이만큼 더 줄인다.
+   *
+   * Canva는 글꼴에 없는 글자(`→` 등)를 대체 글꼴로 그리면서 자기 줄바꿈 계산보다
+   * 넓게 렌더링할 때가 있다. 실제 생성한 핵심정리 상자에서 `→`가 둘 든 줄이
+   * 지정 폭 1165px보다 약 80px 넓게 나와 상자 오른쪽을 넘었다. 이 여유가 그런
+   * 초과를 흡수한다. 글자 크기는 그대로이고 줄 수만 조금 늘 수 있다.
+   */
+  textSlack: 90,
 } as const;
 
 /**

@@ -16,6 +16,7 @@ import type { FlowItem, PlacedItem } from "./flow";
 import { imagePlaceholderItem } from "./image-placeholder";
 import { lineHeight, measureText } from "./measure";
 import { codeItems } from "./code-block";
+import { flowStripItem } from "./flow-strip";
 import { promptItem, responseItems } from "./prompt-response";
 
 /**
@@ -266,6 +267,8 @@ function gapBefore(next: ContentBlock | undefined, isLast: boolean): number {
       return GAP.beforePrompt;
     case "code":
       return GAP.beforeCode;
+    case "flow":
+      return GAP.beforeFlow;
     case "list":
       return GAP.beforeList;
     default:
@@ -310,6 +313,15 @@ export function blockFlowItems(
 
     if (block.kind === "prompt") {
       items.push(promptItem(block.text, style));
+      return;
+    }
+
+    if (block.kind === "flow") {
+      items.push(
+        flowStripItem(block.steps, style, {
+          gapAfter: isLast ? 0 : GAP.afterFlow,
+        }),
+      );
       return;
     }
 
@@ -366,7 +378,8 @@ export function blockFlowItems(
           lastItem
             ? next?.kind === "image" ||
               next?.kind === "prompt" ||
-              next?.kind === "code"
+              next?.kind === "code" ||
+              next?.kind === "flow"
               ? gapBefore(next, isLast)
               : isLast
                 ? 0

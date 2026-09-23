@@ -43,6 +43,8 @@ export const coalaTheme = {
      * 구분되는 중립 회색. 주석은 secondaryText, 키워드는 primary를 쓴다.
      */
     codeFill: "#EEF1F5",
+    /** 가로 흐름의 카드를 잇는 가는 선. 원본 caution-box.png에서 잰 값. */
+    flowConnector: "#8A8BBC",
   },
   /**
    * 활자와 지면 치수는 여기 없다.

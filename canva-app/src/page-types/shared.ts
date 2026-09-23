@@ -83,9 +83,10 @@ export function sectionMarkdown(section: ContentSection): string {
   return parts.join("\n\n");
 }
 
+/** 이모지와 글자 사이는 두 칸이다. 한 칸이면 Canva에서 이모지에 붙어 보인다. */
 const CALLOUT_LABEL = {
-  tip: "💡 Tip",
-  "key-point": "📑 핵심 정리",
+  tip: "💡  Tip",
+  "key-point": "📑  핵심정리",
 } as const;
 
 /**
@@ -102,7 +103,8 @@ export function calloutItem(
 ): FlowItem {
   const left = options.left ?? PAGE.marginX;
   const width = options.width ?? CONTENT_WIDTH;
-  const innerWidth = width - CALLOUT_PADDING.x * 2;
+  // 글은 안쪽 너비보다 `textSlack`만큼 더 좁게 흘린다. 높이도 그 폭으로 잰다.
+  const innerWidth = width - CALLOUT_PADDING.x * 2 - CALLOUT_PADDING.textSlack;
   const label = CALLOUT_LABEL[callout.type];
   // 강조 박스 안에는 이미지 자리나 프롬프트·응답 상자를 둘 수 없다. 원고
   // 검사가 먼저 거절한다.
@@ -166,7 +168,8 @@ export function calloutItem(
       }),
       createRichText({
         left: left + CALLOUT_PADDING.x,
-        top: top + CALLOUT_PADDING.top + titleHeight + CALLOUT_PADDING.afterTitle,
+        top:
+          top + CALLOUT_PADDING.top + titleHeight + CALLOUT_PADDING.afterTitle,
         width: innerWidth,
         segments: parseInline(bodyText),
         fontRef: fonts.fontRef,

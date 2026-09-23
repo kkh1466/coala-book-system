@@ -25,6 +25,7 @@ const SPECIAL_FENCES: ReadonlySet<string> = new Set([
   "response",
   "flowchart",
   "output",
+  "flow",
 ]);
 
 export function fenceLanguage(line: string): string | undefined {

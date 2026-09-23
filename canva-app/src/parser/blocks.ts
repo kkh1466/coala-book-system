@@ -6,6 +6,8 @@ import {
 import type { InlineSegment } from "./inline";
 import { parseInline } from "./inline";
 import { findFenceClose, scanResultsAfter } from "./code-result";
+import type { FlowStep } from "./flow-strip";
+import { parseFlowLines } from "./flow-strip";
 
 /**
  * 원고의 Markdown 구조를 그대로 담은 블록.
@@ -36,7 +38,9 @@ export type ContentBlock =
    * 실행 결과다. 원고 검사가 정확히 하나를 보장하므로 없는 경우는 검사를 거치지
    * 않은 원고뿐이다.
    */
-  | { kind: "code"; language: string; code: string; result?: CodeResult };
+  | { kind: "code"; language: string; code: string; result?: CodeResult }
+  /** 가로 흐름. 흰 카드가 한 줄로 이어진다. */
+  | { kind: "flow"; steps: FlowStep[] };
 
 /** 코드 블록의 실행 결과. 텍스트 출력이거나 GUI 화면 자리다. */
 export type CodeResult =
@@ -129,6 +133,9 @@ export function parseBlocks(markdown: string): ContentBlock[] {
         });
       } else if (language === "output") {
         // 앞선 코드가 소비하지 못한 output. 원고 검사가 거절하므로 버린다.
+      } else if (language === "flow") {
+        // 줄 문제는 원고 검사가 거절한다. 여기서는 읽히는 카드만 담는다.
+        blocks.push({ kind: "flow", steps: parseFlowLines(innerLines).steps });
       } else {
         // 코드는 앞뒤 빈 줄만 걷어 내고 들여쓰기는 그대로 둔다. 실행 결과는
         // 원고 검사와 같은 논리(`scanResultsAfter`)로 바로 뒤에서 찾는다.

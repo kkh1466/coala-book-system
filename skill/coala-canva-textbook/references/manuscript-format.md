@@ -230,6 +230,23 @@ print("안녕하세요")
 ```
 ````
 
+## Flow strip
+
+The horizontal row of white cards joined by thin lines at the top of `assets/page-examples/caution-box.png`. Write a ```` ```flow ```` block on a `concept` page with `layout="basic"`; each line is one card as `제목 | 부제`, and the subtitle is optional. Two to five cards.
+
+````markdown
+```flow
+정보 입력 | Field
+버튼 클릭 | Button
+처리 | 기능 실행
+결과 확인 | Text
+```
+````
+
+- Cards share the full content width with equal gaps; each shows the title in bold black and the subtitle in blue, centred, at body size. All cards take the height of the tallest one, so keep titles short.
+- Rejected with the row number: one card or more than five; a line with two `|`; a line without a title; a heading, list, image directive, quotation, or fence inside the block; a `flow` block on a card layout or on any other page type.
+- A `flow` block is not code: it takes no execution result. It is never split across pages; when it does not fit it moves whole to the next page.
+
 ## AI prompt and response
 
 Write the user's prompt and the AI's response as two fenced blocks, the response directly after the prompt with nothing but blank lines between them. The app draws the prompt in a pill-shaped outline and the response in a rounded outlined box, both at body size, following `assets/page-examples/ai-prompt-response.png`. The reference page's `+` and microphone icons are decoration and are not reproduced.
@@ -366,13 +383,14 @@ The parser rejects any syntax it cannot lay out. Earlier versions let these thro
 | `###` | `chapter-opening` only: `### 학습 목표` and one concept subsection heading. |
 | Paragraphs, `- ` lists, `1. ` lists | Body text. Lists are one level deep. |
 | `**강조**` | The only inline formatting. |
-| `> [!TIP]`, `> [!KEY_POINT]` | One per page, on `concept`, `comparison`, `practice-opening`, and `practice-checklist`; not on `screenshot-guide`. The marker stands alone on its line, starting at column one; the text follows on `> ` lines directly below. |
+| `> [!TIP]`, `> [!KEY_POINT]` (rendered as `💡 Tip` and `📑 핵심정리`) | One per page, on `concept`, `comparison`, `practice-opening`, and `practice-checklist`; not on `screenshot-guide`. The marker stands alone on its line, starting at column one; the text follows on `> ` lines directly below. |
 | Table | `comparison` pages only, one table. The introduction above it is sentences, not a list. Text below the table is rejected; use the callout. |
 | `- [ ]` checklist | `practice-opening` and `practice-checklist` only, written with `-`. |
 | `::image{...}` | See "Image placeholders". |
 | ```` ```flowchart ```` | `flowchart` pages only, one block. |
 | ```` ```prompt ```` + ```` ```response ```` | `concept` pages with `layout="basic"`, always as a pair. See "AI prompt and response". |
 | ```` ```python ```` and other fenced code + ```` ```output ```` or `role="result"` image | `concept` pages with `layout="basic"`, always as a pair. See "Code". |
+| ```` ```flow ```` | `concept` pages with `layout="basic"`, two to five `제목 \| 부제` lines. See "Flow strip". |
 
 Rejected everywhere, with the manuscript row number: `~~~` fences, empty or unclosed fences, inline code in backticks, links, Markdown images (`![]()`), HTML tags, strikethrough, horizontal rules, nested lists, plain `>` quotations, other callout kinds such as `[!CAUTION]`, `[!NOTE]`, and `[!WARNING]`, and headings deeper than the page type allows. On a `chapter-opening` page, text between the subtitle and `### 학습 목표` is rejected, and the learning objectives must be `- ` items only.
 

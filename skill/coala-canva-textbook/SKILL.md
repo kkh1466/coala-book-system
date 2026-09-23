@@ -1,6 +1,6 @@
 ---
 name: coala-canva-textbook
-description: Create or restructure Korean portrait educational textbooks from structured Markdown or source manuscripts, following the retained Coala Canva book's page system and prioritizing large readable text, generous whitespace, and content splitting over shrinking. Use for new Canva-style textbooks, workbooks, and course materials; do not use for ordinary slide decks or unrelated documents.
+description: Create or restructure Korean portrait educational textbooks from structured Markdown, source manuscripts, or rough material such as lecture notes, slides, an outline, or a topic description, following the retained Coala Canva book's page system and prioritizing large readable text, generous whitespace, and content splitting over shrinking. Writes the Markdown manuscript the Coala Book Builder app parses and validates it. Use for new Canva-style textbooks, workbooks, and course materials; do not use for ordinary slide decks or unrelated documents.
 ---
 
 # Coala Canva Textbook
@@ -74,6 +74,8 @@ Read [references/production-workflow.md](references/production-workflow.md) when
 
 Read [references/manuscript-format.md](references/manuscript-format.md) whenever a Markdown manuscript will be parsed by the Coala Book Builder app. Validate the manuscript before creating any Canva pages.
 
+Read [references/manuscript-authoring.md](references/manuscript-authoring.md) when the user supplies rough material (notes, slides, an outline, a topic) and wants a manuscript written. It lists the available manuscript components, when each fits, and how to plan image placeholders for images added later.
+
 ## Workflow
 
 1. Preserve all required source content and identify the learning purpose of each section.
@@ -91,9 +93,19 @@ Read [references/manuscript-format.md](references/manuscript-format.md) whenever
 
 The source book is evidence for visual language and reusable page patterns, not an authority for density or numbering quality. When a source page conflicts with this skill's readability or sequence checks, follow the skill and improve the new book rather than copying the defect.
 
+## Writing a manuscript from rough material
+
+When the user asks for a manuscript rather than supplying one, follow `references/manuscript-authoring.md`: collect the inputs, choose page types and blocks from its component inventory according to the supplied material, run every code block for its real `output`, validate with `npm run validate` until it passes, and hand over the manuscript with the list of images and flowcharts a person still has to prepare. Save the result under `coala-book-md/<book>/book.md`.
+
+Three rules from the user apply to every manuscript written this way:
+
+- In a `screenshot-guide`, declare captures with `width="half"` by default so two steps fit on a page.
+- Prefer bullets over long prose when listing examples, features, steps, or objectives, with a short lead-in; keep short flowing explanations as paragraphs and split a long paragraph before turning it into a list.
+- Use a range of supported components where each genuinely helps the lesson; do not add an unsuitable component just for variety. Plan `::image{...}` placeholders for useful or format-required images even when no image file exists yet. Reuse images the user supplies, respect any image choices or limits they give, and list the remaining images for the user to add after generation.
+
 ## Missing manuscript behavior
 
-If no manuscript is supplied, create only an outline when the user requested planning. Draft instructional content only when the user explicitly requested writing. Distinguish user-supplied source content from newly drafted content, and do not invent curriculum requirements, institutional policies, citations, or software behavior.
+If no manuscript is supplied and the user asked only for planning, create an outline. Draft instructional content only when the user asked for writing, following the section above. Distinguish user-supplied source content from newly drafted content, and do not invent curriculum requirements, institutional policies, citations, or software behavior.
 
 ## Reference source
 

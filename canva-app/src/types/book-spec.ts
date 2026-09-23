@@ -1,4 +1,9 @@
-import { findCodeResultProblems } from "../parser/code-result";
+import {
+  fenceLanguage,
+  findCodeResultProblems,
+  findFenceClose,
+} from "../parser/code-result";
+import { parseFlowLines } from "../parser/flow-strip";
 
 export type BookSpec = {
   schemaVersion: 1;
@@ -289,10 +294,13 @@ function validateConceptPage(page: ConceptPage, pageIndex: number): void {
         `${prefix}.sections[${index}] needs body or bullets.`,
       );
     }
-    // 코드와 실행 결과의 짝은 원고 검사와 같은 논리로 한 번 더 확인한다.
-    const [problem] = section.content
-      ? findCodeResultProblems(section.content.split("\n"))
-      : [];
+    // 코드와 실행 결과의 짝, 가로 흐름의 줄은 원고 검사와 같은 논리로 한 번
+    // 더 확인한다.
+    const lines = section.content ? section.content.split("\n") : [];
+    const [problem] = [
+      ...findCodeResultProblems(lines),
+      ...findFlowProblems(lines),
+    ];
     if (problem) {
       throw new BookSpecValidationError(
         `${prefix}.sections[${index}]: ${problem.message}`,
@@ -349,6 +357,29 @@ function validatePracticeChecklistPage(
   const prefix = `pages[${pageIndex}]`;
   requireText(page.title, `${prefix}.title`);
   requireTextArray(page.items, `${prefix}.items`);
+}
+
+/** 섹션 본문의 ```flow 블록마다 줄 문제를 찾는다. */
+function findFlowProblems(
+  lines: readonly string[],
+): { line: number; message: string }[] {
+  const problems: { line: number; message: string }[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (fenceLanguage(lines[index] ?? "") !== "flow") {
+      continue;
+    }
+    const close = findFenceClose(lines, index + 1);
+    const end = close < 0 ? lines.length : close;
+    for (const problem of parseFlowLines(lines.slice(index + 1, end))
+      .problems) {
+      problems.push({
+        line: index + 1 + problem.offset,
+        message: problem.message,
+      });
+    }
+    index = end;
+  }
+  return problems;
 }
 
 /**

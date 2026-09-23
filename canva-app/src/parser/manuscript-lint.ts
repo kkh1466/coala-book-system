@@ -3,6 +3,7 @@ import {
   isResultImageLine,
   scanResultsAfter,
 } from "./code-result";
+import { parseFlowLines } from "./flow-strip";
 import { isImageDirectiveLine } from "./image-directive";
 
 /**
@@ -47,6 +48,7 @@ export function lintPageBody(
   // 카드 안에는 상자를 넣을 자리가 없다.
   const dialogueAllowed = rules.dialogue && (layout ?? "basic") === "basic";
   const codeAllowed = rules.code && (layout ?? "basic") === "basic";
+  const flowAllowed = rules.flow && (layout ?? "basic") === "basic";
   const codeForbiddenMessage = rules.code
     ? '코드 블록은 concept layout="basic"에서만 쓸 수 있습니다. 카드 안에는 코드 상자를 둘 수 없습니다.'
     : `${type} 페이지에는 코드 블록을 넣을 수 없습니다. concept 페이지로 옮겨 주세요.`;
@@ -108,6 +110,7 @@ export function lintPageBody(
       const isDialogueFence =
         marker === "```" && (language === "prompt" || language === "response");
       const isOutputFence = marker === "```" && language === "output";
+      const isFlowFence = marker === "```" && language === "flow";
 
       if (isFlowchartFence) {
         flowchartFenceSeen = true;
@@ -148,6 +151,21 @@ export function lintPageBody(
           index,
           "flowchart 페이지에는 ```flowchart 블록 하나만 둘 수 있습니다.",
         );
+      } else if (isFlowFence && !flowAllowed) {
+        report(
+          index,
+          rules.flow
+            ? 'flow 블록은 concept layout="basic"에서만 쓸 수 있습니다. 카드 안에는 가로 흐름을 둘 수 없습니다.'
+            : `${type} 페이지에는 flow 블록을 넣을 수 없습니다. concept 페이지로 옮겨 주세요.`,
+        );
+      } else if (isFlowFence) {
+        const inner = bodyLines.slice(
+          index + 1,
+          close < 0 ? bodyLines.length : close,
+        );
+        for (const problem of parseFlowLines(inner).problems) {
+          report(index + 1 + problem.offset, problem.message);
+        }
       } else if (!codeAllowed) {
         report(index, codeForbiddenMessage);
       } else if (isOutputFence) {
@@ -170,6 +188,7 @@ export function lintPageBody(
         !isFlowchartFence &&
         !isDialogueFence &&
         !isOutputFence &&
+        !isFlowFence &&
         type !== "flowchart";
       if (isPlainCode && close >= 0) {
         const lookup = scanResultsAfter(bodyLines, close + 1);
@@ -434,6 +453,8 @@ type PageRules = {
   dialogue: boolean;
   /** 코드 상자(```` ```python ```` 등)를 놓을 수 있는가. */
   code: boolean;
+  /** 가로 흐름(```` ```flow ````)을 놓을 수 있는가. */
+  flow: boolean;
 };
 
 const PAGE_RULES: Record<string, PageRules> = {
@@ -445,6 +466,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: false,
     dialogue: false,
     code: false,
+    flow: false,
   },
   concept: {
     headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
@@ -453,6 +475,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: false,
     dialogue: true,
     code: true,
+    flow: true,
   },
   comparison: {
     headings: { 1: 1 },
@@ -461,6 +484,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: false,
     dialogue: false,
     code: false,
+    flow: false,
   },
   "practice-opening": {
     headings: { 1: 1 },
@@ -469,6 +493,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: true,
     dialogue: false,
     code: false,
+    flow: false,
   },
   "practice-checklist": {
     headings: { 1: 1 },
@@ -477,6 +502,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: true,
     dialogue: false,
     code: false,
+    flow: false,
   },
   "screenshot-guide": {
     headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
@@ -485,6 +511,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: false,
     dialogue: false,
     code: false,
+    flow: false,
   },
   "step-process": {
     headings: { 1: 1, 2: Number.POSITIVE_INFINITY },
@@ -493,6 +520,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: false,
     dialogue: false,
     code: false,
+    flow: false,
   },
   flowchart: {
     headings: { 1: 1 },
@@ -502,6 +530,7 @@ const PAGE_RULES: Record<string, PageRules> = {
     checklist: false,
     dialogue: false,
     code: false,
+    flow: false,
   },
 };
 

@@ -32,7 +32,7 @@ The PNGs are visual verification references, not finished page backgrounds. For 
 | Project summary or portfolio | `portfolio-summary.png`, `project-checklist.png` |
 | Continuation pages | none retained |
 
-`caution-box.png` is named after a caution box but actually shows a `핵심 정리` key-summary box. Treat it as a second key-summary example, not as a caution reference.
+`caution-box.png` is named after a caution box but actually shows a `핵심정리` key-summary box. Treat it as a second key-summary example, not as a caution reference. Its top shows the horizontal flow strip of white cards joined by thin lines, which the Coala Book Builder app draws from a ```` ```flow ```` block on a `concept` page (see `manuscript-format.md` > "Flow strip"); the key-summary box itself is the `> [!KEY_POINT]` callout, drawn with the `📑 핵심정리` label.
 
 ## Cover
 

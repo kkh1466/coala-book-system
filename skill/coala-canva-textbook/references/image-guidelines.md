@@ -15,7 +15,7 @@ When a manuscript will be parsed by the Coala Book Builder app, do not wait for 
 
 - Decide the final aspect ratio first and write it as `ratio`. The reserved box is filled by cropping, so a mismatched ratio cuts the image. For a screenshot, use the ratio of the capture after irrelevant chrome has been cropped.
 - Write `alt` as what the learner must see in the image, not as a file description. It tells whoever adds the image later which capture is expected.
-- Use `width="half"` only for small subjects such as a single button or icon. A full window needs `text` or `full` to stay readable.
+- For `screenshot-guide` captures, start with `width="half"` so two short steps can share a page; use `text` or `full` if important controls or labels would be unreadable. For other image placeholders, choose width from the image's teaching role and legibility: a small subject may fit at half width, while a full window usually needs `text` or `full`.
 - Give every planned file a stable, descriptive path under `assets/`, grouped by chapter, for example `assets/ch03/step-02-run-button.png`.
 - To finish a placeholder in Canva: drag the image onto the grey box, confirm the crop, then delete the guide label inside the box. The caption, if any, is already in place.
 - The grey box is a drop target: the dropped image fills it exactly and nothing else on the page moves. The Canva editor cannot stretch the box to a different aspect ratio, so do it with the app before adding the image:

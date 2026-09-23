@@ -70,7 +70,7 @@ describe("실습 오프닝 카드", () => {
 
   it("Tip 박스는 카드 아래에 하나만 온다", () => {
     const elements = layoutPage(page, wantedSansFonts)[0]?.elements ?? [];
-    const tip = findText(elements, "💡 Tip");
+    const tip = findText(elements, "💡  Tip");
     const card = shapeBoxes(elements).find(
       (shape) => shape.top === 157 && shape.width > 1200,
     );
