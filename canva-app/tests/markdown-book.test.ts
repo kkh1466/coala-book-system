@@ -69,6 +69,8 @@ describe("Markdown textbook parser", () => {
       .readFileSync(fixturePath, "utf8")
       .replace('id="ai-strengths"', 'id="chapter-01"');
 
-    expect(() => parseBookMarkdown(source)).toThrow("duplicate id");
+    expect(() => parseBookMarkdown(source)).toThrow(
+      "중복된 page id입니다: chapter-01",
+    );
   });
 });

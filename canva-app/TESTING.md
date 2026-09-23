@@ -11,6 +11,7 @@
 - 타입 검사: `npm run lint:types`
 - lint: `npm run lint`
 - 테스트: `npm test`
+- 원고 검증: `npm run validate -- ../test-input/prototype-book.md` (아래 "원고 검증 명령")
 - production build: `npm run build`
 - 개발 서버: `npm start`
 - Safari용 HTTPS 개발 서버: `npm start --use-https`
@@ -119,7 +120,26 @@
 
 공식 문서: [addPage](https://www.canva.dev/docs/apps/api/latest/design-add-page/), [assets](https://www.canva.dev/docs/apps/uploading-assets/), [elements](https://www.canva.dev/docs/apps/elements/), [fonts](https://www.canva.dev/docs/apps/fonts/), [Design Editing API](https://www.canva.dev/docs/apps/design-editing/).
 
+## 원고 검증 명령
+
+Canva를 열지 않고 원고를 검사한다. 앱이 원고를 올릴 때 부르는 `src/parser`를 그대로 부르므로, 여기서 통과한 원고는 앱에서도 통과한다. 규칙은 파서에만 있고 `scripts/validate.cjs`는 입구일 뿐이다.
+
+```bash
+npm run validate -- ../coala-book-md/book.md          # 여러 파일을 줄 수 있다
+npm run validate -- ../coala-book-md/book.md --json   # 기계가 읽을 출력
+```
+
+- 오류를 첫 번째에서 멈추지 않고 **모두** 모아 원고 행 번호와 page id와 함께 보여 준다. 앱 패널의 "원고 오류" 알림도 같은 목록을 보여 준다(20건까지).
+- 종료 코드: 오류 없음 0, 오류 있음 1, 사용법 오류 2. 경고(기울임 표기)는 종료 코드를 바꾸지 않는다.
+- Front Matter나 `:::page` 경계가 깨진 원고는 그 오류 하나만 보고하고 멈춘다. 뒤의 행 번호를 믿을 수 없기 때문이다.
+- 검사하지 않는 것: 내용의 정확성, 분할 뒤의 실제 Canva 페이지 수, 이미지 파일의 존재와 실제 비율. 배치 계산(`layoutBook`)은 `@canva/design`의 richtext 런타임을 쓰므로 이 명령에 넣지 않았다.
+
+지원하지 않는 Markdown 문법(코드 블록, 표, `> [!CAUTION]`, 인라인 코드, 링크, 중첩 목록 등)은 `src/parser/manuscript-lint.ts`가 거절한다. 허용 문법의 기준 문서는 스킬의 `references/manuscript-format.md` > "Supported Markdown, and nothing else"이며, 페이지 타입이나 블록을 새로 구현하면 이 두 곳을 함께 고친다.
+
 ## 자동 테스트 범위
+
+- AI 프롬프트·응답 상자(```` ```prompt ````/```` ```response ````): 블록 읽기, 짝·위치·안쪽 문법 검사와 행 번호, 원본과 같은 자리의 알약형·둥근 상자와 안쪽 여백, 28pt 유지, 긴 응답의 문단 경계 분할과 안전 영역 준수, 프롬프트 상자가 페이지 하단에 홀로 남지 않음, 상자 없는 원고의 배치 불변
+- 지원하지 않는 Markdown 문법의 거절과 행 번호, 본문에 흔한 표기(`<Button-1>`, `2 * 3 * 4`, `__init__`)를 문법으로 오인하지 않음, 여러 페이지의 오류를 행 순서로 한 번에 수집, Front Matter 값 오류의 행 번호, `test-input/`의 모든 원고가 문제 없이 통과
 
 - Markdown Front Matter와 page 컨테이너 파싱
 - 5개 구현 페이지 타입의 구조 변환
@@ -220,6 +240,17 @@ Canva의 새 디자인은 빈 페이지 한 장으로 시작하고 `addPage()`�
 - [ ] 생성이 끝나면 앱 패널에 "이미지 자리 N곳을 비워 두었습니다"와 쪽번호·파일 경로·픽셀 크기 목록이 보인다.
 - [ ] `../test-input/image-placeholder.md`에서 세로로 긴 자리(9:16)가 지면 안으로 줄어들고, 연속 페이지의 자리가 쪽번호를 덮지 않는다.
 - [ ] 이미지가 없는 기존 원고(`prototype-book.md`, `prototype-book-v2.md`)의 결과가 이전과 같다.
+
+## AI 프롬프트·응답 상자 수동 검증
+
+자동 테스트는 상자의 위치·크기·글자 크기만 확인한다. 아래는 실제 Canva에서만 확인할 수 있다. `../test-input/prompt-response.md`(1페이지, 분량이 많아 2장 이상으로 나뉜다)를 쓴다.
+
+- [ ] 프롬프트 상자가 알약형(높이의 절반이 반지름)이고 응답 상자의 모서리가 둥글다. 두 상자 모두 테두리 `#737373` 2px에 안은 지면 배경색이다.
+- [ ] 두 상자의 글이 툴바에서 28pt, 줄 간격 2로 보이고 본문과 같은 글꼴이다.
+- [ ] 응답 상자 안의 `- ` 목록이 기호와 함께 들여써져 있고 `**강조**`가 굵고 파란색이다.
+- [ ] 응답이 길어 상자가 나뉘면 두 번째 상자가 다음 페이지 `제목(계속)` 아래에 놓이고, 글이 상자 밖으로 나가거나 상자가 쪽번호 영역을 덮지 않는다.
+- [ ] 상자와 글이 각각 편집 가능한 요소이고, 상자를 옮기면 글은 따라오지 않는다(그룹이 아니다).
+- [ ] 프롬프트·응답이 없는 기존 원고(`prototype-book-v2.md`)의 결과가 이전과 같다.
 
 ## 사용자가 채운 순서도 검증
 

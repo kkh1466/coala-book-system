@@ -17,6 +17,7 @@
     "start": "npx @canva/cli apps start",
     "start:preview": "npx @canva/cli apps start --preview",
     "test": "jest --no-cache",
+    "validate": "node scripts/validate.cjs",
     "test:watch": "jest --watchAll"
   },
   "dependencies": {

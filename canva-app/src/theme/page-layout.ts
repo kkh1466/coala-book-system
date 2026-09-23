@@ -68,6 +68,12 @@ export const GAP = {
   afterImage: 28,
   /** 이미지 자리와 캡션 사이. 캡션 줄 간격이 이미 위쪽 공기를 만든다. */
   imageCaption: 4,
+  /** 글 다음에 프롬프트 상자가 올 때. 이미지 앞 여백과 같다. */
+  beforePrompt: 28,
+  /** 프롬프트 상자와 응답 상자 사이. 원본 ai-prompt-response.png: 358 → 397. */
+  promptToResponse: 40,
+  /** 응답 상자 다음에 다른 내용이 올 때. 원본: 상자 하단 1070 → 다음 제목 잉크 1116. */
+  afterResponse: 44,
 } as const;
 
 /** 강조 박스 안쪽 여백. */
@@ -77,6 +83,32 @@ export const CALLOUT_PADDING = {
   bottom: 36,
   /** 박스 제목과 본문 사이 */
   afterTitle: 18,
+} as const;
+
+/**
+ * AI 프롬프트·응답 상자. 원본 ai-prompt-response.png에서 잰 값이다.
+ *
+ * 프롬프트 상자는 높이의 절반을 반지름으로 하는 알약형이고(한 줄일 때 높이
+ * 114px), 응답 상자는 모서리 반지름 70px의 둥근 사각형이다. 둘 다 테두리 2px에
+ * 채움이 없다. 원본의 `+`·마이크 아이콘은 장식이라 넣지 않는다.
+ */
+export const PROMPT_BOX = {
+  /** 프롬프트 상자의 위아래 안쪽 여백. 한 줄 글(74.7px) + 20 × 2 ≈ 114. */
+  paddingY: 20,
+  /**
+   * 프롬프트 글을 상자 안에서 아래로 내리는 양.
+   *
+   * Canva는 줄 간격 2의 여분 공간을 글자 위보다 아래에 더 둔다. 실제 생성한
+   * 페이지를 재면 글자가 상자 중심보다 16px 위에 있었다(위 25px, 아래 57px).
+   * 상자 높이는 그대로 두고 글만 이만큼 내려 가운데에 맞춘다.
+   */
+  textOffsetY: 16,
+  /** 응답 상자의 위아래 안쪽 여백. */
+  responsePaddingY: 36,
+  /** 두 상자의 좌우 안쪽 여백. 강조 박스와 같다. */
+  paddingX: 46,
+  responseRadius: 70,
+  strokeWeight: 2,
 } as const;
 
 /**

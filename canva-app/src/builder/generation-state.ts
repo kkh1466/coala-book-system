@@ -2,6 +2,10 @@ import type { PageId } from "@canva/design";
 import type { BookSpec } from "../types/book-spec";
 import type { BookProgressEvent } from "./create-book";
 import { BookGenerationFailedError } from "./create-book";
+import {
+  MarkdownBookParseError,
+  formatManuscriptIssue,
+} from "../parser/markdown-book";
 import { classifyFailure, isManuscriptError } from "./canva-errors";
 
 /**
@@ -78,6 +82,9 @@ export function describeCompletion(result: {
 
 export type ReportLine = { label: string; value: string };
 
+/** 좁은 앱 패널에 한 번에 보여 줄 원고 오류 수. */
+const MAX_REPORTED_ISSUES = 20;
+
 export type FailureReport = {
   /** 원고 검증 단계의 실패인가, 실제 Canva 생성 실패인가. */
   kind: "manuscript" | "generation";
@@ -132,6 +139,26 @@ export function buildFailureReport(error: unknown): FailureReport {
       title: failure?.summary ?? "Canva 페이지 생성을 마치지 못했습니다.",
       lines,
       progressNote: `전체 ${error.totalPages}페이지 중 ${totalReady}페이지까지 생성됐습니다. 이미 만들어진 페이지는 Canva에 그대로 남아 있습니다.`,
+    };
+  }
+
+  if (error instanceof MarkdownBookParseError) {
+    // 찾은 오류를 모두 보여 준다. 하나씩 보여 주면 고칠 때마다 다시 올려야 한다.
+    const shown = error.issues.slice(0, MAX_REPORTED_ISSUES);
+    const lines: ReportLine[] = shown.map((issue, index) => ({
+      label: `오류 ${index + 1}`,
+      value: formatManuscriptIssue(issue),
+    }));
+    if (error.issues.length > shown.length) {
+      lines.push({
+        label: "그 밖에",
+        value: `${error.issues.length - shown.length}건이 더 있습니다. 위 오류를 고친 뒤 다시 올려 주세요.`,
+      });
+    }
+    return {
+      kind: "manuscript",
+      title: `원고에서 오류 ${error.issues.length}건을 찾았습니다.`,
+      lines,
     };
   }
 

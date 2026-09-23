@@ -78,7 +78,7 @@ Read [references/manuscript-format.md](references/manuscript-format.md) whenever
 
 1. Preserve all required source content and identify the learning purpose of each section.
 2. Map the content to the page templates and content blocks in `references/page-types.md`.
-3. When the input is Markdown, normalize it to `references/manuscript-format.md` and validate the complete document before creating any Canva pages.
+3. When the input is Markdown, normalize it to `references/manuscript-format.md` and validate the complete document before creating any Canva pages. Where the Coala Book Builder source is available, run `npm run validate -- <manuscript.md>` from `canva-app/` and fix every reported row until it passes; otherwise check the manuscript against "Supported Markdown, and nothing else" by hand.
 4. Estimate density using the fixed typography. Split dense content before layout.
 5. For table-of-contents, chapter-opening, and practice-opening pages, duplicate the matching native Canva page instead of recreating its structure when that capability is available.
 6. For flowcharts, classify each node and conditional/loop structure, then follow `references/flowcharts.md` exactly. If the target integration cannot insert or duplicate the required native Canva assets, do not draw substitutes. With the Coala Book Builder app, write the flowchart in the manuscript, let the app reserve its placeholder, and hand the listed placeholders to a person to build in the Canva editor; with any other integration, stop and report the limitation.

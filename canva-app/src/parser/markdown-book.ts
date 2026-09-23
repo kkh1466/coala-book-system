@@ -11,12 +11,20 @@ import type {
   PracticeChecklistPage,
   PracticeOpeningPage,
 } from "../types/book-spec";
-import { BookSpecValidationError, validateBookSpec } from "../types/book-spec";
+import {
+  BookSpecValidationError,
+  validateBookPage,
+  validateBookSpec,
+} from "../types/book-spec";
 import {
   ImageDirectiveError,
   isImageDirectiveLine,
   parseImageDirective,
 } from "./image-directive";
+import type { ManuscriptIssue } from "./manuscript-lint";
+import { lintPageBody } from "./manuscript-lint";
+
+export type { ManuscriptIssue } from "./manuscript-lint";
 
 type RawPage = {
   attributes: Record<string, string>;
@@ -27,50 +35,193 @@ type RawPage = {
 };
 
 export class MarkdownBookParseError extends Error {
-  constructor(message: string, line?: number) {
+  /** 찾은 오류 전부. 첫 항목이 `message`의 출처다. */
+  readonly issues: ManuscriptIssue[];
+
+  constructor(message: string, line?: number, issues?: ManuscriptIssue[]) {
     super(line ? `${line}행: ${message}` : message);
     this.name = "MarkdownBookParseError";
+    this.issues = issues ?? [{ severity: "error", message, line }];
   }
 }
 
-export function parseBookMarkdown(source: string): BookSpec {
-  const normalized = source.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
-  const { metadata, body, bodyStartLine } = parseFrontMatter(normalized);
-  const rawPages = extractPages(body, bodyStartLine);
+export type ManuscriptCheck = {
+  /** 오류가 하나도 없을 때만 있다. */
+  spec?: BookSpec;
+  /** 원고 행 순서로 정렬된 오류와 경고. */
+  issues: ManuscriptIssue[];
+};
 
-  const spec: BookSpec = {
-    schemaVersion: numberValue(metadata.schema_version, "schema_version") as 1,
-    title: stringValue(metadata.title, "title"),
-    subtitle: optionalString(metadata.subtitle),
-    learnerLevel: optionalString(metadata.learner_level),
-    language: enumValue(metadata.language ?? "ko", ["ko"], "language"),
-    canvas: enumValue(
-      metadata.canvas ?? "coala-portrait",
-      ["coala-portrait"],
-      "canvas",
-    ),
-    numbering: enumValue(
-      metadata.numbering ?? "auto",
-      ["auto", "none"],
-      "numbering",
-    ),
-    toc: enumValue(metadata.toc ?? "none", ["auto", "none"], "toc"),
-    institution: optionalString(metadata.institution),
-    assetsDir: optionalString(metadata.assets_dir),
-    pages: rawPages.map(parsePage),
+/** 문제 하나를 한 줄로 적는다. 앱과 검증 명령이 같은 표기를 쓴다. */
+export function formatManuscriptIssue(issue: ManuscriptIssue): string {
+  const where = [
+    issue.line ? `${issue.line}행` : undefined,
+    issue.pageId ? `page "${issue.pageId}"` : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return where ? `${where}: ${issue.message}` : issue.message;
+}
+
+/**
+ * 원고를 읽는다. 오류가 있으면 첫 오류를 메시지로 던지고, 찾은 오류 전부를
+ * `issues`에 담는다.
+ */
+export function parseBookMarkdown(source: string): BookSpec {
+  const { spec, issues } = checkBookMarkdown(source);
+  const errors = issues.filter((issue) => issue.severity === "error");
+  const first = errors[0];
+  if (!spec || first) {
+    const rest = errors.length > 1 ? ` (외 ${errors.length - 1}건)` : "";
+    throw new MarkdownBookParseError(
+      `${first?.message ?? "원고를 읽을 수 없습니다."}${rest}`,
+      first?.line,
+      errors,
+    );
+  }
+  return spec;
+}
+
+/**
+ * 원고를 검사해 문제를 **모두** 모은다.
+ *
+ * 첫 오류에서 멈추면 오타 다섯 개를 고치는 데 다섯 번 왕복해야 한다. Front
+ * Matter와 page 구역 경계가 깨진 경우만 그 자리에서 멈추고(뒤의 행 번호를 믿을
+ * 수 없다), 그 밖에는 페이지마다 따로 검사해 한 페이지의 실패가 다른 페이지의
+ * 검사를 막지 않게 한다.
+ */
+export function checkBookMarkdown(source: string): ManuscriptCheck {
+  const normalized = source.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const issues: ManuscriptIssue[] = [];
+  const collect = (error: unknown, fallback: Partial<ManuscriptIssue>) => {
+    if (error instanceof MarkdownBookParseError) {
+      issues.push(
+        ...error.issues.map((issue) => ({
+          ...issue,
+          line: issue.line ?? fallback.line,
+          pageId: issue.pageId ?? fallback.pageId,
+        })),
+      );
+      return;
+    }
+    if (error instanceof BookSpecValidationError) {
+      // 행 번호와 page id를 따로 적으므로 `pages[3].` 머리말은 뗀다.
+      const message = error.message.replace(/^pages\[\d+\]\./, "");
+      issues.push({ severity: "error", message, ...fallback });
+      return;
+    }
+    throw error;
   };
 
+  let metadata: Record<string, unknown>;
+  let rawPages: RawPage[];
+  try {
+    const frontMatter = parseFrontMatter(normalized);
+    metadata = frontMatter.metadata;
+    rawPages = extractPages(frontMatter.body, frontMatter.bodyStartLine);
+  } catch (error) {
+    collect(error, {});
+    return { issues };
+  }
+
+  const field = <T>(
+    key: string,
+    read: (value: unknown) => T,
+  ): T | undefined => {
+    try {
+      return read(metadata[key]);
+    } catch (error) {
+      collect(error, { line: frontMatterLine(normalized, key) });
+      return undefined;
+    }
+  };
+  const header = {
+    schemaVersion: field("schema_version", (value) =>
+      numberValue(value, "schema_version"),
+    ) as 1 | undefined,
+    title: field("title", (value) => stringValue(value, "title")),
+    subtitle: optionalString(metadata.subtitle),
+    learnerLevel: optionalString(metadata.learner_level),
+    language: field("language", (value) =>
+      enumValue(value ?? "ko", ["ko"], "language"),
+    ),
+    canvas: field("canvas", (value) =>
+      enumValue(value ?? "coala-portrait", ["coala-portrait"], "canvas"),
+    ),
+    numbering: field("numbering", (value) =>
+      enumValue(value ?? "auto", ["auto", "none"], "numbering"),
+    ),
+    toc: field("toc", (value) =>
+      enumValue(value ?? "none", ["auto", "none"], "toc"),
+    ),
+    institution: optionalString(metadata.institution),
+    assetsDir: optionalString(metadata.assets_dir),
+  };
+
+  const pages: BookPage[] = [];
+  const firstUse = new Map<string, number>();
+  rawPages.forEach((rawPage, index) => {
+    const pageId = rawPage.attributes.id || undefined;
+    const before = issues.length;
+    issues.push(
+      ...lintPageBody(
+        rawPage.attributes.type ?? "",
+        rawPage.bodyLines,
+        rawPage.startLine + 1,
+        rawPage.attributes.layout,
+      ).map((issue) => ({ ...issue, pageId })),
+    );
+    if (pageId) {
+      const usedAt = firstUse.get(pageId);
+      if (usedAt !== undefined) {
+        issues.push({
+          severity: "error",
+          message: `중복된 page id입니다: ${pageId} (${usedAt}행에서 이미 사용)`,
+          line: rawPage.startLine,
+          pageId,
+        });
+      } else {
+        firstUse.set(pageId, rawPage.startLine);
+      }
+    }
+    try {
+      const page = parsePage(rawPage);
+      // 문법 오류가 있는 페이지는 내용이 어긋나 있어 같은 원인을 다른 말로 한 번
+      // 더 지적하게 된다. 문법을 고친 뒤에 검증한다.
+      if (!issues.slice(before).some((issue) => issue.severity === "error")) {
+        validateBookPage(page, index);
+      }
+      pages.push(page);
+    } catch (error) {
+      collect(error, { line: rawPage.startLine, pageId });
+    }
+  });
+
+  issues.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
+  if (issues.some((issue) => issue.severity === "error")) {
+    return { issues };
+  }
+
+  const spec = { ...header, pages } as BookSpec;
   try {
     validateBookSpec(spec);
   } catch (error) {
-    if (error instanceof BookSpecValidationError) {
-      throw new MarkdownBookParseError(error.message);
-    }
-    throw error;
+    collect(error, {});
+    return { issues };
   }
   // 페이지 번호는 여기서 정하지 않는다. 분할과 구조 페이지 삽입이 끝난 뒤
   // builder/plan-book.ts의 planBook()이 확정한다.
-  return spec;
+  return { spec, issues };
+}
+
+/** Front Matter에서 `key:`가 적힌 행. 없으면 Front Matter의 첫 행. */
+function frontMatterLine(source: string, key: string): number {
+  const lines = source.split("\n");
+  const closing = lines.indexOf("---", 1);
+  const index = lines.findIndex(
+    (line, at) => at < closing && new RegExp(`^${key}\\s*:`).test(line),
+  );
+  return index < 0 ? 2 : index + 1;
 }
 
 function parseFrontMatter(source: string): {

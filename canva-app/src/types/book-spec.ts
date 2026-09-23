@@ -163,44 +163,54 @@ export function validateBookSpec(spec: BookSpec): void {
 
   const pageIds = new Set<string>();
   spec.pages.forEach((page, pageIndex) => {
-    const prefix = `pages[${pageIndex}]`;
-    requireText(page.id, `${prefix}.id`);
+    requireText(page.id, `pages[${pageIndex}].id`);
     if (pageIds.has(page.id)) {
       throw new BookSpecValidationError(
         `pages contains duplicate id: ${page.id}`,
       );
     }
     pageIds.add(page.id);
-
-    switch (page.type) {
-      case "chapter-opening":
-        validateChapterOpeningPage(page, pageIndex);
-        break;
-      case "concept":
-        validateConceptPage(page, pageIndex);
-        break;
-      case "comparison":
-        validateComparisonPage(page, pageIndex);
-        break;
-      case "practice-opening":
-        validatePracticeOpeningPage(page, pageIndex);
-        break;
-      case "practice-checklist":
-        validatePracticeChecklistPage(page, pageIndex);
-        break;
-      case "flowchart":
-        validateFlowchartPage(page, pageIndex);
-        break;
-      default: {
-        const unknownPage: never = page;
-        throw new BookSpecValidationError(
-          `${prefix}.type is not supported: ${String(
-            (unknownPage as { type?: unknown }).type,
-          )}`,
-        );
-      }
-    }
+    validateBookPage(page, pageIndex);
   });
+}
+
+/**
+ * 페이지 하나의 내용을 검증한다.
+ *
+ * 원고 검사는 페이지마다 따로 호출해 한 페이지의 실패가 다른 페이지의 검사를
+ * 막지 않게 한다. id 중복처럼 책 전체를 봐야 하는 검사는 여기에 없다.
+ */
+export function validateBookPage(page: BookPage, pageIndex: number): void {
+  const prefix = `pages[${pageIndex}]`;
+  requireText(page.id, `${prefix}.id`);
+  switch (page.type) {
+    case "chapter-opening":
+      validateChapterOpeningPage(page, pageIndex);
+      break;
+    case "concept":
+      validateConceptPage(page, pageIndex);
+      break;
+    case "comparison":
+      validateComparisonPage(page, pageIndex);
+      break;
+    case "practice-opening":
+      validatePracticeOpeningPage(page, pageIndex);
+      break;
+    case "practice-checklist":
+      validatePracticeChecklistPage(page, pageIndex);
+      break;
+    case "flowchart":
+      validateFlowchartPage(page, pageIndex);
+      break;
+    default: {
+      const unknownPage: never = page;
+      throw new BookSpecValidationError(
+        `${prefix}.type is not supported: ${String(
+          (unknownPage as { type?: unknown }).type,
+        )}`,
+      );
+    }
+  }
 }
 
 function validateChapterOpeningPage(

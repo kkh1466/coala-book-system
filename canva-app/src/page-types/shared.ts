@@ -104,10 +104,11 @@ export function calloutItem(
   const width = options.width ?? CONTENT_WIDTH;
   const innerWidth = width - CALLOUT_PADDING.x * 2;
   const label = CALLOUT_LABEL[callout.type];
-  // 강조 박스 안에는 이미지 자리를 둘 수 없다. 원고 파서가 먼저 거절한다.
+  // 강조 박스 안에는 이미지 자리나 프롬프트·응답 상자를 둘 수 없다. 원고
+  // 검사가 먼저 거절한다.
   const blocks = parseBlocks(callout.text).filter(
-    (block): block is Exclude<typeof block, { kind: "image" }> =>
-      block.kind !== "image",
+    (block): block is Extract<typeof block, { kind: "paragraph" | "list" }> =>
+      block.kind === "paragraph" || block.kind === "list",
   );
   const bodyText = blocks
     .map((block) =>

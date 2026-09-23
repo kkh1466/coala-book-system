@@ -10,6 +10,7 @@ import {
 } from "../src/builder/generation-state";
 import { createFakeCanva, fivePageBook, rateLimitError, twelvePageBook } from "./helpers/fake-canva";
 import { createBook } from "../src/builder/create-book";
+import { parseBookMarkdown } from "../src/parser/markdown-book";
 
 describe("생성 버튼 활성화", () => {
   const base = { canAddPage: true, hasBookSpec: true } as const;
@@ -139,6 +140,41 @@ describe("실패 보고 구분", () => {
     const report = buildFailureReport(error);
     expect(report.kind).toBe("generation");
     expect(report.lines.some((line) => line.value === "rate_limited")).toBe(true);
+  });
+
+  it("원고 오류는 찾은 것을 모두 행 번호와 함께 보여 준다", () => {
+    const source = [
+      "---",
+      "schema_version: 1",
+      "title: 원고",
+      "---",
+      "",
+      ':::page{type="concept" id="p1" layout="basic"}',
+      "# 제목",
+      "## 소제목",
+      "```python",
+      "```",
+      "> 인용문",
+      ":::",
+    ].join("\n");
+    const error = (() => {
+      try {
+        return parseBookMarkdown(source);
+      } catch (thrown) {
+        return thrown;
+      }
+    })();
+
+    const report = buildFailureReport(error);
+
+    expect(report.kind).toBe("manuscript");
+    expect(report.title).toContain("오류 2건");
+    expect(report.lines.map((line) => line.value)).toEqual([
+      expect.stringMatching(/^9행 page "p1": 코드 블록/),
+      expect.stringMatching(/^11행 page "p1": 인용문/),
+    ]);
+    // 화면 목록의 key로 쓰인다.
+    expect(new Set(report.lines.map((line) => line.label)).size).toBe(2);
   });
 
   it("한 페이지도 못 만들었을 때도 몇 페이지까지 만들었는지 정확히 말한다", async () => {

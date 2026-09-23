@@ -28,6 +28,12 @@ export type FlowItem = {
   pendingImage?: PendingImage;
   /** 이 조각이 순서도 자리표시자일 때만 있다. 생성 후 보고 목록에 쓴다. */
   pendingFlowchart?: PendingFlowchart;
+  /**
+   * 지면 하나에 가깝게 커질 수 있는 상자(응답 상자 등). 이 조각이 있는 페이지는
+   * `continuationInset`을 넘겨, 연속 페이지에서 `제목(계속)`만큼 밀린 뒤에도
+   * 안전 영역 안에 남게 한다. 이미지 자리는 `pendingImage`로 같은 처리를 받는다.
+   */
+  reservesContinuation?: true;
   /** 확정된 Y 위치로 실제 Canva 요소를 만든다. */
   render: (top: number) => ElementAtPoint[];
 };
@@ -82,7 +88,10 @@ export function flowIntoPages(
       // 페이지를 끊는다. 직전 조각이 "다음과 함께"를 요구하면(섹션 제목 등)
       // 그 조각도 같이 넘겨 제목만 하단에 홀로 남지 않게 한다.
       const carried: PlacedItem[] = [];
-      while (current.length > 1 && current[current.length - 1]?.item.keepWithNext) {
+      while (
+        current.length > 1 &&
+        current[current.length - 1]?.item.keepWithNext
+      ) {
         const moved = current.pop();
         if (moved) {
           carried.unshift(moved);
@@ -112,9 +121,7 @@ export function renderPlaced(placed: readonly PlacedItem[]): ElementAtPoint[] {
 }
 
 /** 이 페이지에 놓인 이미지 자리표시자들. */
-export function pendingImagesOf(
-  placed: readonly PlacedItem[],
-): PendingImage[] {
+export function pendingImagesOf(placed: readonly PlacedItem[]): PendingImage[] {
   return placed.flatMap(({ item }) =>
     item.pendingImage ? [item.pendingImage] : [],
   );

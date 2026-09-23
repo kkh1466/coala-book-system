@@ -52,8 +52,9 @@ function cardHeight(section: ContentSection): number {
   const blocks = parseBlocks(sectionMarkdown(section));
   const bodyHeight = blocks.reduce((sum, block, index) => {
     const gap = index === blocks.length - 1 ? 0 : GAP.paragraph;
-    if (block.kind === "image") {
-      // 카드 안에는 이미지 자리를 둘 수 없다. 원고 파서가 먼저 거절한다.
+    if (block.kind !== "paragraph" && block.kind !== "list") {
+      // 카드 안에는 이미지 자리나 프롬프트·응답 상자를 둘 수 없다. 원고 검사가
+      // 먼저 거절한다.
       return sum;
     }
     if (block.kind === "paragraph") {
@@ -224,9 +225,11 @@ export function layoutConcept(
     items.push(calloutItem(page.callout, fonts, { gapAfter: 0 }));
   }
 
-  // 이미지 자리가 있는 페이지만 연속 페이지 제목의 몫을 미리 덜어 낸다.
+  // 이미지 자리나 큰 상자가 있는 페이지만 연속 페이지 제목의 몫을 미리 덜어 낸다.
   // 이미지가 없으면 옵션을 넘기지 않으므로 배치는 이전과 똑같다.
-  const hasImage = items.some((item) => item.pendingImage);
+  const hasImage = items.some(
+    (item) => item.pendingImage || item.reservesContinuation,
+  );
   const pages = flowIntoPages(
     items,
     { top: PAGE.safeTop, bottom: PAGE.safeBottom },

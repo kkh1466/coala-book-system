@@ -32,6 +32,11 @@ export const coalaTheme = {
     /** 이미지 자리표시자. 이미지를 넣으면 채움이 통째로 바뀌므로 남지 않는다. */
     placeholderFill: "#E3E7EC",
     placeholderText: "#5B6673",
+    /**
+     * AI 프롬프트·응답 상자의 테두리. 원본 ai-prompt-response.png에서 잰 값이며,
+     * 상자 안은 지면 배경색 그대로다(채움 없음).
+     */
+    promptStroke: "#737373",
   },
   /**
    * 활자와 지면 치수는 여기 없다.

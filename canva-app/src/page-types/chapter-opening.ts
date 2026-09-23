@@ -206,9 +206,11 @@ export function layoutChapterOpening(
   );
 
   const flowTop = header.bottom + GAP.beforeHeading;
-  // 이미지 자리가 있는 페이지만 연속 페이지 제목의 몫을 미리 덜어 낸다.
+  // 이미지 자리나 큰 상자가 있는 페이지만 연속 페이지 제목의 몫을 미리 덜어 낸다.
   // 이미지가 없으면 옵션을 넘기지 않으므로 배치는 이전과 똑같다.
-  const hasImage = items.some((item) => item.pendingImage);
+  const hasImage = items.some(
+    (item) => item.pendingImage || item.reservesContinuation,
+  );
   const pages = flowIntoPages(
     items,
     { top: flowTop, bottom: PAGE.safeBottom },

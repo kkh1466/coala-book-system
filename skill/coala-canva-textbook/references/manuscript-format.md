@@ -162,6 +162,39 @@ connections:
 :::
 ````
 
+## AI prompt and response
+
+Write the user's prompt and the AI's response as two fenced blocks, the response directly after the prompt with nothing but blank lines between them. The app draws the prompt in a pill-shaped outline and the response in a rounded outlined box, both at body size, following `assets/page-examples/ai-prompt-response.png`. The reference page's `+` and microphone icons are decoration and are not reproduced.
+
+````markdown
+:::page{type="concept" id="prompt-example" layout="basic"}
+# 프롬프트 예시
+
+## 예시1)
+
+```prompt
+서울 여행 1박 2일 일정을 추천해줘.
+```
+
+```response
+DAY 1
+
+- 경복궁 : 서울 대표 궁궐 / 한복 체험 / 사진 명소
+- 북촌한옥마을 : 한옥 골목 산책 / 감성 카페
+```
+:::
+````
+
+Rules:
+
+- Allowed only on a `concept` page with `layout="basic"`, in the body under the page title. Rejected on card layouts, inside a callout, and on every other page type.
+- A `prompt` block must be followed by a `response` block, and a `response` block must follow a `prompt` block. Any text between them is rejected. Several pairs may follow one another; put a `## ` heading such as `## 예시1)` above each pair when the reference layout is wanted.
+- Inside `prompt`: sentences only. Line breaks are kept. `**강조**` is allowed.
+- Inside `response`: paragraphs and one-level `- ` or `1. ` lists, separated by blank lines. `**강조**` is allowed. Headings, tables, callouts, images, checklists, and nested lists are rejected with the row number.
+- Neither block may be empty, and each must be closed with a ```` ``` ```` line.
+- A long response is not shrunk. The box is split at a paragraph or list-item boundary and continues in another box on the next page, under the `제목(계속)` heading. Keep only the part of the response that the learning purpose needs, and mark shortened or edited AI output in the text itself, as `content-writing.md` and `page-types.md` require.
+- The prompt box is never left alone at the bottom of a page; it moves to the next page with its response.
+
 ## Image placeholders
 
 Declare an image where it belongs in the manuscript, even when the file does not exist yet. The app reserves the exact space, marks it, and leaves it empty. The image is added later in Canva by dragging it onto the reserved box; nothing else on the page moves.
@@ -191,11 +224,60 @@ Rules:
 
 After generation the app lists every placeholder with its page number, planned file, reserved pixel size, and ratio. Preparing each image at that pixel size avoids cropping.
 
+## Supported Markdown, and nothing else
+
+The parser rejects any syntax it cannot lay out. Earlier versions let these through, and they reached Canva as literal symbols or disappeared without an error. Write only what this table allows.
+
+| Syntax | Where it is allowed |
+| --- | --- |
+| `#` page title | Exactly one per page, at the start of a line. Nothing may be written above it. |
+| `##` | `chapter-opening` (one, the subtitle) and `concept` (any number, the section headings). |
+| `###` | `chapter-opening` only: `### 학습 목표` and one concept subsection heading. |
+| Paragraphs, `- ` lists, `1. ` lists | Body text. Lists are one level deep. |
+| `**강조**` | The only inline formatting. |
+| `> [!TIP]`, `> [!KEY_POINT]` | One per page, on `concept`, `comparison`, `practice-opening`, and `practice-checklist`. The marker stands alone on its line, starting at column one; the text follows on `> ` lines directly below. |
+| Table | `comparison` pages only, one table. The introduction above it is sentences, not a list. Text below the table is rejected; use the callout. |
+| `- [ ]` checklist | `practice-opening` and `practice-checklist` only, written with `-`. |
+| `::image{...}` | See "Image placeholders". |
+| ```` ```flowchart ```` | `flowchart` pages only, one block. |
+| ```` ```prompt ```` + ```` ```response ```` | `concept` pages with `layout="basic"`, always as a pair. See "AI prompt and response". |
+
+Rejected everywhere, with the manuscript row number: fenced code blocks other than `prompt`, `response`, and `flowchart`, inline code in backticks, links, Markdown images (`![]()`), HTML tags, strikethrough, horizontal rules, nested lists, plain `>` quotations, other callout kinds such as `[!CAUTION]`, `[!NOTE]`, and `[!WARNING]`, and headings deeper than the page type allows. On a `chapter-opening` page, text between the subtitle and `### 학습 목표` is rejected, and the learning objectives must be `- ` items only.
+
+`*기울임*` is reported as a warning rather than an error, because a sentence may use a literal asterisk. The asterisks are printed as written.
+
+Write plain text such as `<Button-1>`, `2 * 3 * 4`, `my_var_name`, and `__init__` as is. They are not mistaken for syntax.
+
+Code cannot be placed in a manuscript yet. Until a code block is implemented, do not paste code into paragraphs; leave the code out and report that it could not be placed.
+
 ## Page templates and content blocks
 
 Treat `tip`, `key-point`, tables, checklists, images, code, and prompt-response content as blocks inside a page rather than independent page templates. Add new page templates only when the whole-page arrangement changes.
 
-Planned page templates include `cover`, `toc`, `divider`, `step-process`, `screenshot-guide`, `chart-result`, `before-after`, and `final-submission`.
+## Not implemented: do not write these
+
+The six page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `cover`, `toc`, `divider`, `step-process`, `screenshot-guide`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` is rejected as well. A person adds the cover, contents, and divider pages in Canva after generation.
+
+## Validating a manuscript
+
+Validate before opening Canva. From `canva-app/`:
+
+```bash
+npm run validate -- ../coala-book-md/book.md
+```
+
+The command calls the same parser the Canva app uses when a manuscript is uploaded, so a manuscript that passes here is accepted there. It lists **every** problem at once with its row number and page `id`, then exits with status 1 when there is at least one error. Add `--json` for machine-readable output. Several files may be given.
+
+```
+✗ book.md
+  오류  18행 page "print-basics": 코드 블록(```)은 아직 지원하지 않습니다. …
+  오류  49행 page "age-check": connections[0].to references missing node: conditon
+  오류 2건, 경고 0건
+```
+
+Fix every reported row and run the command again until it prints `✓`. Do not hand over a manuscript that has not passed.
+
+The command checks structure and syntax only. It does not check whether the content is correct, whether a page is comfortable to read, how many Canva pages the manuscript becomes after splitting, or whether the planned image files exist.
 
 ## Validation behavior
 
@@ -208,4 +290,7 @@ The parser must reject the complete manuscript before Canva writes begin when:
 - a required heading, table, checklist, or flowchart field is missing;
 - a flowchart `height` is not an integer from 300 to 1800;
 - an image placeholder is malformed, uses an unsupported attribute, or sits in a position where it cannot be laid out;
-- a practice opening contains both a Tip and an objective checklist.
+- a practice opening contains both a Tip and an objective checklist;
+- any syntax outside "Supported Markdown, and nothing else" appears.
+
+Problems are collected page by page and reported together. Only a broken Front Matter or a broken `:::page` boundary stops the check at once, because row numbers after it cannot be trusted.

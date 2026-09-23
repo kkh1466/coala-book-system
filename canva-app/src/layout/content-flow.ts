@@ -15,6 +15,7 @@ import { createRichText } from "../builder/element-factory";
 import type { FlowItem, PlacedItem } from "./flow";
 import { imagePlaceholderItem } from "./image-placeholder";
 import { lineHeight, measureText } from "./measure";
+import { promptItem, responseItems } from "./prompt-response";
 
 /**
  * Markdown 블록을 세로 흐름 조각으로 바꾼다.
@@ -239,6 +240,23 @@ function paragraphItems(
 /** 순서 없는 목록의 기호. 순서 있는 목록은 번호를 쓴다. */
 const DISC = "•";
 
+/** 글(문단·목록) 다음에 `next` 블록이 올 때의 여백. 마지막이면 0. */
+function gapBefore(next: ContentBlock | undefined, isLast: boolean): number {
+  if (isLast || !next) {
+    return 0;
+  }
+  switch (next.kind) {
+    case "image":
+      return GAP.beforeImage;
+    case "prompt":
+      return GAP.beforePrompt;
+    case "list":
+      return GAP.beforeList;
+    default:
+      return GAP.paragraph;
+  }
+}
+
 export type BlockFlowOptions = {
   /** 한 조각이 넘을 수 없는 높이. 보통 안전 영역 전체 높이. */
   maxItemHeight: number;
@@ -274,20 +292,35 @@ export function blockFlowItems(
       return;
     }
 
+    if (block.kind === "prompt") {
+      items.push(promptItem(block.text, style));
+      return;
+    }
+
+    if (block.kind === "response") {
+      // 프롬프트 상자는 응답 상자와 함께 넘어가므로, 첫 응답 상자는 프롬프트
+      // 상자와 같은 페이지에 들어갈 수 있는 높이여야 한다.
+      const prompt = items[items.length - 1];
+      const promptShare =
+        blocks[index - 1]?.kind === "prompt" && prompt
+          ? prompt.height + prompt.gapAfter
+          : 0;
+      items.push(
+        ...responseItems(block.markdown, style, {
+          gapAfter: isLast ? 0 : GAP.afterResponse,
+          maxHeight: options.maxItemHeight - promptShare,
+        }),
+      );
+      return;
+    }
+
     if (block.kind === "paragraph") {
       // 문단 다음에 목록이 오면, 그 문단은 목록을 이끄는 도입 문장이다.
-      const gapAfter = isLast
-        ? 0
-        : next?.kind === "image"
-          ? GAP.beforeImage
-          : next?.kind === "list"
-            ? GAP.beforeList
-            : GAP.paragraph;
       items.push(
         ...paragraphItems(
           block.segments,
           style,
-          gapAfter,
+          gapBefore(next, isLast),
           options.maxItemHeight,
         ),
       );
@@ -305,10 +338,10 @@ export function blockFlowItems(
           block.ordered ? `${itemIndex + 1}.` : DISC,
           style,
           lastItem
-            ? isLast
-              ? 0
-              : next?.kind === "image"
-                ? GAP.beforeImage
+            ? next?.kind === "image" || next?.kind === "prompt"
+              ? gapBefore(next, isLast)
+              : isLast
+                ? 0
                 : GAP.afterList
             : itemGap,
           {

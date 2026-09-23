@@ -21,7 +21,17 @@ export type ContentBlock =
       items: InlineSegment[][];
     }
   /** 이미지 자리표시자. 자리만 비워 두고 이미지는 나중에 Canva에서 넣는다. */
-  | { kind: "image"; image: ImageDirective };
+  | { kind: "image"; image: ImageDirective }
+  /** 사용자가 AI에게 보낸 프롬프트. 줄바꿈이 보존된 평문이다. */
+  | { kind: "prompt"; text: string }
+  /**
+   * AI의 응답. 문단과 목록을 담은 Markdown 원문이다. 렌더러가 `parseBlocks`로
+   * 다시 읽는다. 원고 검사가 프롬프트 바로 다음에만 오도록 보장한다.
+   */
+  | { kind: "response"; markdown: string };
+
+/** `prompt`·`response` 코드 블록의 시작 줄. 그 밖의 펜스는 본문으로 남는다. */
+const DIALOGUE_FENCE = /^```(prompt|response)\s*$/;
 
 const UNORDERED = /^\s*[-*+]\s+(?!\[[ xX]\])(.+)$/;
 const ORDERED = /^\s*(\d+)[.)]\s+(.+)$/;
@@ -39,11 +49,14 @@ const HEADING = /^\s*#{1,6}\s+/;
  * - 제목 줄(`#`)은 상위에서 따로 처리하므로 여기서는 무시한다.
  * - `::image{...}` 한 줄은 이미지 자리표시자 블록이 된다. 형식 검증은
  *   `markdown-book.ts`가 Canva 쓰기 전에 끝내므로 여기서는 던지지 않는다.
+ * - ```` ```prompt ````·```` ```response ```` 블록은 닫는 ```` ``` ```` 줄까지가
+ *   한 블록이다. 짝과 위치의 검증도 원고 검사가 맡는다.
  */
 export function parseBlocks(markdown: string): ContentBlock[] {
   const blocks: ContentBlock[] = [];
   let paragraph: string[] = [];
   let list: { ordered: boolean; items: string[] } | undefined;
+  const lines = markdown.split("\n");
 
   const flushParagraph = () => {
     if (paragraph.length === 0) {
@@ -68,7 +81,8 @@ export function parseBlocks(markdown: string): ContentBlock[] {
     list = undefined;
   };
 
-  for (const rawLine of markdown.split("\n")) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index] ?? "";
     const line = rawLine.trim();
 
     if (line.length === 0) {
@@ -77,6 +91,27 @@ export function parseBlocks(markdown: string): ContentBlock[] {
       continue;
     }
     if (HEADING.test(line)) {
+      continue;
+    }
+
+    const fence = line.match(DIALOGUE_FENCE);
+    if (fence) {
+      const close = lines.findIndex(
+        (candidate, at) => at > index && candidate.trim() === "```",
+      );
+      const end = close < 0 ? lines.length : close;
+      const inner = lines
+        .slice(index + 1, end)
+        .join("\n")
+        .trim();
+      flushParagraph();
+      flushList();
+      blocks.push(
+        fence[1] === "prompt"
+          ? { kind: "prompt", text: inner }
+          : { kind: "response", markdown: inner },
+      );
+      index = end;
       continue;
     }
 

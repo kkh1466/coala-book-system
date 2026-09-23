@@ -142,6 +142,8 @@ Observed in the reference book's AI literacy and example pages. Reference exampl
 
 Use separate rounded containers or otherwise clearly distinct regions for the user's prompt and the AI response. Label the two roles consistently, keep one primary prompt task per page, and maintain comfortable internal padding.
 
+The Coala Book Builder app draws this from a ```` ```prompt ````/```` ```response ```` pair on a `concept` page (see `manuscript-format.md` > "AI prompt and response"): a pill-shaped outline for the prompt and a rounded outlined box for the response, both with 28 pt text. The shapes themselves distinguish the roles, as in the reference page; no text label is added. The reference page's `+` and microphone icons are not reproduced.
+
 When a response is long, retain only the portion required for the learning purpose or continue it on another page. Clearly mark summarized, shortened, or edited AI output. Never shrink the response text to force the full output onto one page.
 
 Do not present generated factual, medical, legal, or financial statements as verified merely because they appear in an AI response.
