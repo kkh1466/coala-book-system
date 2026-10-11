@@ -155,6 +155,35 @@ describe("폴더의 파일과 원고의 src 짝 맞추기", () => {
     expect(missing).toEqual(["assets/ch05/b.png"]);
   });
 
+  it("macOS가 NFD로 저장한 한글 파일 이름도 원고의 NFC src와 짝이 맞는다", () => {
+    // 원고는 NFC(완성형)로 적히고, macOS 파일 이름은 NFD(자모 분리형)로 온다.
+    const nfc = "assets/ipynb 소개.png".normalize("NFC");
+    const nfd = "assets/ipynb 소개.png".normalize("NFD");
+    expect(nfc).not.toBe(nfd);
+
+    const { found, missing } = pairImageFiles(
+      "ai-math2/book.md",
+      [nfc],
+      [
+        {
+          relativePath: `ai-math2/${nfd}`,
+          file: file("ipynb 소개.png".normalize("NFD")),
+        },
+      ],
+    );
+
+    expect(found.get(nfc)?.file.name.normalize("NFC")).toBe("ipynb 소개.png");
+    expect(missing).toEqual([]);
+
+    // 이미지 폴더만 골랐을 때(끝부분 비교)도 같다.
+    const { found: fromAssets } = pairImageFiles(
+      "book.md",
+      [nfc],
+      [{ relativePath: nfd, file: file("ipynb 소개.png".normalize("NFD")) }],
+    );
+    expect(fromAssets.has(nfc)).toBe(true);
+  });
+
   it("원고 본문의 이미지 src를 순서대로, 중복 없이 모은다", () => {
     const source = book(
       ':::page{type="concept" id="p1"}',

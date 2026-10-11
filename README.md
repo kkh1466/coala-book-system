@@ -10,6 +10,42 @@ coala-book-system/
 └─ test-input/       파서 테스트용 원고 예시. invalid/ 는 일부러 틀린 원고
 ```
 
+## 빠른 시작 (복붙용)
+
+준비물: [Node.js 24](https://nodejs.org) 설치, Canva 계정
+
+**1. 설치 (최초 1회)**
+
+```bash
+git clone <저장소 주소> coala-book-system
+cd coala-book-system/canva-app
+npm install
+```
+
+**2. Canva 앱 만들기 (최초 1회)**
+
+1. https://www.canva.com/developers/apps 접속 → **Create an app** 클릭
+2. 왼쪽 메뉴 **Configuration** 의 **App source** → **Development URL** 에 `http://localhost:8080` 입력 → 저장
+3. 같은 화면의 **Permissions** 에서 `canva:design:content:read`, `canva:design:content:write` 두 개 켜기
+
+**3. 서버 켜기 (매번)**
+
+```bash
+cd coala-book-system/canva-app
+npm start
+```
+
+터미널에 `localhost:8080` 이 보이면 켜진 것. 이 창은 닫지 말고 둔다.
+
+**4. Canva에서 열기 (매번)**
+
+1. https://www.canva.com/developers/apps → **Your apps** → 2번에서 만든 앱 클릭
+2. 오른쪽 위 **Preview** (미리보기) 클릭 → 새 Canva 디자인이 열리고 왼쪽에 앱 패널이 뜬다
+3. 패널에서 **Choose file** → `coala-book-md/ch05-conditionals/book.md` 선택
+4. **교재 페이지 생성** 클릭
+
+종료할 때는 터미널에서 `Ctrl + C`. 자세한 내용은 아래 절을 본다.
+
 ## 1. 요구 사항
 
 | 항목 | 값 |

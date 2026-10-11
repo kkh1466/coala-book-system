@@ -38,10 +38,16 @@ const IMAGE_EXTENSIONS: Record<string, string> = {
   webp: "image/webp",
 };
 
-/** `./`와 `..`를 정리한 슬래시 경로. 앞의 `/`는 없다. */
+/**
+ * `./`와 `..`를 정리한 슬래시 경로. 앞의 `/`는 없다.
+ *
+ * 한글은 NFC(완성형)로 맞춘다. macOS는 파일 이름의 한글을 NFD(자모 분리형)로
+ * 저장하므로, 원고에 적은 `소개.png`와 폴더에서 온 `소개.png`가 눈에는 같아도
+ * 코드 포인트가 달라 짝이 맞지 않는다. 비교 전에 양쪽을 같은 형태로 맞춘다.
+ */
 export function normalizePath(path: string): string {
   const parts: string[] = [];
-  for (const part of path.replace(/\\/g, "/").split("/")) {
+  for (const part of path.normalize("NFC").replace(/\\/g, "/").split("/")) {
     if (part === "" || part === ".") {
       continue;
     }
