@@ -192,9 +192,7 @@ describe("표와 카드의 크기 제한", () => {
           Array.from({ length: 6 }, () => "| 1 | 2 |"),
         ),
       ),
-    ).toEqual([
-      expect.stringMatching(/^9: comparison 표의 본문은 5행까지만/),
-    ]);
+    ).toEqual([expect.stringMatching(/^9: comparison 표의 본문은 5행까지만/)]);
     expect(
       messagesOf(
         comparison(
@@ -235,7 +233,7 @@ describe("표와 카드의 크기 제한", () => {
 describe("오류 모으기", () => {
   it("여러 페이지의 오류를 원고 행 순서로 한 번에 돌려준다", () => {
     const source = book(
-      [':::page{type="cover" id="cover"}', "# 표지", ":::", ""],
+      [':::page{type="divider" id="divider"}', "# 구분", ":::", ""],
       concept(["~~~", "code", "~~~"], "p1"),
       concept(["본문"], "p1"),
       [
@@ -259,7 +257,7 @@ describe("오류 모으기", () => {
 
     expect(spec).toBeUndefined();
     expect(issues.map((issue) => issue.message)).toEqual([
-      "지원하지 않는 페이지 형식입니다: cover",
+      "지원하지 않는 페이지 형식입니다: divider",
       expect.stringContaining("코드 블록"),
       expect.stringContaining("중복된 page id입니다: p1"),
       "connections[0].to references missing node: conditon",

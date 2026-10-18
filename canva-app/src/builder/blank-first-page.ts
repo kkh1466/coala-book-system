@@ -162,7 +162,7 @@ export async function fillBlankFirstPage(
   // 2) 배경을 먼저 맞춘다. 여기서 실패하면 요소는 아직 하나도 넣지 않은 상태라
   //    예전 경로로 돌아가도 남는 것이 없다.
   await deps.setCurrentPageBackground({
-    color: coalaTheme.colors.pageBackground,
+    color: prepared.background ?? coalaTheme.colors.pageBackground,
   });
 
   // 3) 모든 요소를 한 번의 sync()로 넣는다. 일부만 들어가는 일이 없다.

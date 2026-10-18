@@ -36,9 +36,36 @@ Currently supported values:
 - `language: ko`
 - `canvas: coala-portrait`
 - `numbering: auto | none`
+- `page_start: <integer ≥ 1>` (optional, default 1): the number printed on the first body page. Use it when a book is produced one chapter per manuscript and the chapters are joined afterwards; set each chapter's value to the previous chapter's last page number plus one. Read that last number from `npm run validate -- <book.md> --layout`, which prints the page range after layout, because a manuscript page can split into several Canva pages.
 - `toc: auto | none`; `auto` is reserved until automatic contents rendering is implemented
 
 ## Implemented page templates
+
+### Cover
+
+A book has one cover, placed in its own manuscript (for example `cover-toc.md` beside the first chapter's `book.md`) so chapter manuscripts stay unchanged. The page holds a `#` title and an optional `##` subtitle, nothing else. The producer mark at the top comes from the `brand` attribute; the institution name at the bottom comes from the `institution` attribute, or from Front Matter `institution` when the attribute is absent. The page is not counted or numbered.
+
+```markdown
+:::page{type="cover" id="cover" brand="THE COALA" institution="삼육보건대학교"}
+# AI와 함께하는 앱 개발
+## 생성형 AI와 Python GUI 프로젝트
+:::
+```
+
+### Table of contents
+
+A `#` title followed by one Markdown table with two columns (number, title) or three (number, title, page). The header row is not rendered. Page numbers are written by the author: the app cannot know another manuscript's pagination, so read each chapter's range from `npm run validate -- <book.md> --layout` and type it in. The page is not counted or numbered; when the rows overflow, the list continues on `목차(계속)`.
+
+```markdown
+:::page{type="toc" id="toc"}
+# 목차
+
+| 번호 | 제목 | 쪽 |
+|---|---|---|
+| 01 | AI 디지털 리터러시 | 1 |
+| 02 | 바이브 코딩 | 11 |
+:::
+```
 
 ### Chapter opening
 
@@ -409,7 +436,7 @@ Treat `tip`, `key-point`, tables, checklists, images, code, and prompt-response 
 
 ## Not implemented: do not write these
 
-The eight page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `cover`, `toc`, `divider`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` is rejected as well. A person adds the cover, contents, and divider pages in Canva after generation.
+The ten page types under "Implemented page templates" are the only ones the parser accepts. The following are planned and are **rejected today**: `divider`, `chart-result`, `before-after`, and `final-submission`. `toc: auto` (a generated contents list) is rejected as well; write the contents by hand on a `toc` page. A person adds divider pages in Canva after generation.
 
 ## Validating a manuscript
 

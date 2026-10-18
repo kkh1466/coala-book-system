@@ -68,6 +68,21 @@ describe("Markdown textbook parser", () => {
     });
   });
 
+  it("reads page_start and rejects values below 1", () => {
+    const source = fs.readFileSync(fixturePath, "utf8");
+    const withStart = source.replace(
+      "numbering: auto",
+      "numbering: auto\npage_start: 11",
+    );
+    expect(withStart).not.toBe(source);
+
+    expect(parseBookMarkdown(source).pageStart).toBeUndefined();
+    expect(parseBookMarkdown(withStart).pageStart).toBe(11);
+    expect(() =>
+      parseBookMarkdown(withStart.replace("page_start: 11", "page_start: 0")),
+    ).toThrow("page_start는 1 이상의 정수여야 합니다.");
+  });
+
   it("rejects duplicate page ids", () => {
     const source = fs
       .readFileSync(fixturePath, "utf8")

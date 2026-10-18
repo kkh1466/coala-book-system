@@ -36,6 +36,21 @@ export const TYPOGRAPHY = {
   /** 장 번호 원 안의 숫자 */
   chapterMarker: 30,
   /**
+   * 표지. 원본 cover.png에서 잰 값이다. 제목 글줄의 한 글자 폭이 약 133px
+   * (= 100pt × 4/3)이고, 위쪽 제작사 표시와 아래쪽 기관명은 본문보다 조금 크다.
+   */
+  coverTitle: 100,
+  coverSubtitle: 36,
+  coverMark: 30,
+  coverInstitution: 36,
+  /**
+   * 목차. 원본 table-of-contents.png에서 잰 값이다. "목차"의 한 글자 폭이
+   * 약 120px(= 90pt × 4/3)이고, 항목 글은 섹션 제목과 같은 30pt다.
+   */
+  tocTitle: 90,
+  tocLabel: 30,
+  tocEntry: 30,
+  /**
    * 페이지 번호(쪽번호).
    *
    * 기존 규칙(본문보다 작은 보조 활자)은 그대로 두되, 1587px 폭 지면에서

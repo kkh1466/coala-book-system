@@ -6,6 +6,7 @@ learner_level: 고등학교 초급
 language: ko
 canvas: coala-portrait
 numbering: auto
+page_start: 11
 toc: none
 assets_dir: ./assets
 ---

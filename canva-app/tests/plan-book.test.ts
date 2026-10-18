@@ -61,6 +61,17 @@ describe("page numbering", () => {
     );
   });
 
+  it("starts counting from page_start so split chapters can be joined", () => {
+    const spec = { ...readFixture(), pageStart: 11 };
+    const plan = planBook(spec);
+
+    const laid = layoutBook(spec, plan.pages, wantedSansFonts);
+
+    expect(laid.map((page) => page.pageNumber)).toEqual(
+      laid.map((_, index) => String(index + 11)),
+    );
+  });
+
   it("omits page numbers when numbering is none", () => {
     const spec = { ...readFixture(), numbering: "none" as const };
     const plan = planBook(spec);

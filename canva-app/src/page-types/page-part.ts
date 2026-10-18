@@ -13,6 +13,11 @@ export type PagePart = {
   title: string;
   /** 쪽번호를 제외한 이 페이지의 모든 요소. */
   elements: ElementAtPoint[];
+  /**
+   * 지면 배경색. 표지와 목차처럼 본문 배경과 다른 페이지만 적는다. 없으면
+   * `coalaTheme.colors.pageBackground`다.
+   */
+  background?: string;
   /** 이 페이지에 비워 둔 이미지 자리. 하나도 없으면 필드 자체가 없다. */
   pendingImages?: PendingImage[];
   /** 이 페이지에서 폴더의 파일로 채운 이미지. 하나도 없으면 필드 자체가 없다. */

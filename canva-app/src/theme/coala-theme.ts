@@ -5,6 +5,12 @@ export const coalaTheme = {
   },
   colors: {
     pageBackground: "#F8F9FA",
+    /**
+     * 표지 배경. 원본 cover.png는 흰색에서 연한 파랑으로 번지는 그라데이션인데
+     * `addPage()`의 배경은 단색뿐이므로 그 중간값을 쓴다.
+     */
+    coverBackground: "#EEF3F9",
+    /** 목차 배경. 원본 table-of-contents.png의 연한 파랑. 표 머리글에도 쓴다. */
     contentsBackground: "#DFE9F2",
     primary: "#1800AD",
     text: "#000000",

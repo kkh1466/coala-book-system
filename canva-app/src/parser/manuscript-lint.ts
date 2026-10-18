@@ -303,7 +303,7 @@ export function lintPageBody(
         continue;
       }
       if (tableZone === "after") {
-        report(index, "comparison 페이지에는 표를 하나만 넣을 수 있습니다.");
+        report(index, `${type} 페이지에는 표를 하나만 넣을 수 있습니다.`);
         continue;
       }
       tableZone = "inside";
@@ -354,7 +354,7 @@ export function lintPageBody(
     if (isListItem && rules.table && tableZone === "before") {
       report(
         index,
-        "comparison 페이지의 도입문에는 목록을 쓸 수 없습니다. 문장으로 적어 주세요.",
+        `${type} 페이지의 도입문에는 목록을 쓸 수 없습니다. 문장으로 적어 주세요.`,
       );
     }
 
@@ -458,6 +458,26 @@ type PageRules = {
 };
 
 const PAGE_RULES: Record<string, PageRules> = {
+  cover: {
+    // `# 제목`과 `## 부제목`. 그 밖의 글은 페이지 파서가 거절한다.
+    headings: { 1: 1, 2: 1 },
+    callout: false,
+    table: false,
+    checklist: false,
+    dialogue: false,
+    code: false,
+    flow: false,
+  },
+  toc: {
+    // `# 목차`와 표 하나. 그 밖의 글은 페이지 파서가 거절한다.
+    headings: { 1: 1 },
+    callout: false,
+    table: true,
+    checklist: false,
+    dialogue: false,
+    code: false,
+    flow: false,
+  },
   "chapter-opening": {
     // `### 학습 목표`와 개념 소제목 하나.
     headings: { 1: 1, 2: 1, 3: 2 },

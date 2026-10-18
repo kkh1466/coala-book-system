@@ -3,6 +3,8 @@ import type { ElementAtPoint, PageMetadata } from "@canva/design";
 import { coalaTheme } from "../theme/coala-theme";
 import type { ResolvedBookFonts } from "../theme/font-resolver";
 import type { BookPage } from "../types/book-spec";
+import { layoutCover } from "../page-types/cover";
+import { layoutToc } from "../page-types/toc";
 import { layoutChapterOpening } from "../page-types/chapter-opening";
 import { layoutFlowchart } from "../page-types/flowchart";
 import { layoutConcept } from "../page-types/concept";
@@ -23,6 +25,8 @@ export type PreparedPage = {
    * 페이지를 식별한다. 같은 페이지의 재시도는 같은 키를 가진다.
    */
   key: string;
+  /** 지면 배경색. 없으면 본문 배경(`pageBackground`). */
+  background?: string;
 };
 
 /**
@@ -35,6 +39,10 @@ export function layoutPage(
   fonts: ResolvedBookFonts,
 ): PagePart[] {
   switch (page.type) {
+    case "cover":
+      return layoutCover(page, fonts);
+    case "toc":
+      return layoutToc(page, fonts);
     case "chapter-opening":
       return layoutChapterOpening(page, fonts);
     case "concept":
@@ -75,6 +83,7 @@ export function preparePage(
         ? `${part.sourcePageId}#${part.partIndex ?? 0}`
         : part.title,
     elements: [...part.elements, ...buildPageNumber(pageNumber, fonts)],
+    ...(part.background ? { background: part.background } : {}),
   };
 }
 
@@ -89,7 +98,9 @@ export async function createPage(page: PreparedPage): Promise<PageMetadata> {
   return addPage({
     title: page.title,
     dimensions: coalaTheme.canvas,
-    background: { color: coalaTheme.colors.pageBackground },
+    background: {
+      color: page.background ?? coalaTheme.colors.pageBackground,
+    },
     elements: page.elements,
   });
 }

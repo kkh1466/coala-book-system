@@ -56,7 +56,9 @@ export function layoutBook(
   const numberedPageIds = new Set(
     pages.filter((page) => isNumberedPage(page)).map((page) => page.id),
   );
-  let next = 1;
+  // 단원별로 나눠 만든 책을 이어 붙일 때는 앞 단원의 마지막 번호 다음부터
+  // 시작한다. 원고의 page_start가 그 값이다.
+  let next = spec.pageStart ?? 1;
   return laidOut.map((page) =>
     numberedPageIds.has(page.sourcePageId)
       ? { ...page, pageNumber: String(next++) }

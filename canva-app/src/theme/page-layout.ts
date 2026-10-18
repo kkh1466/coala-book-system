@@ -200,6 +200,47 @@ export const PROMPT_BOX = {
 export const LIST_MARKER_OFFSET = 33;
 export const BULLET_INDENT = 64;
 
+/**
+ * 표지. 원본 cover.png에서 잰 값이다.
+ *
+ * 제작사 표시는 위쪽 가운데(잉크 상단 ≈ 140), 제목은 왼쪽 여백에서 시작해
+ * 두 줄(잉크 ≈ 470~820), 기관명은 아래쪽 가운데(잉크 ≈ 2030~2095)에 놓인다.
+ * 제목 폭을 단 너비보다 좁게 두어 "AI와 함께하는 / 앱 개발"처럼 원본과 같은
+ * 자리에서 줄이 바뀌게 한다.
+ */
+export const COVER = {
+  mark: { top: 120 },
+  title: { top: 440, width: 1000 },
+  /** 제목과 부제목 사이. */
+  subtitleGap: 40,
+  institution: { top: 2020 },
+} as const;
+
+/**
+ * 목차. 원본 table-of-contents.png에서 잰 값이다.
+ *
+ * "목차"는 왼쪽 여백에서 시작하고(잉크 상단 ≈ 240), 첫 항목은 ≈ 700에서
+ * 시작하며 항목 사이 간격(pitch)은 125px이다. 항목마다 번호·제목·쪽을 한 줄에
+ * 놓고 아래에 가는 구분선을 긋는다.
+ */
+export const TOC = {
+  title: { top: 200 },
+  entriesTop: 680,
+  row: {
+    /** 한 줄짜리 항목의 높이. 제목이 길어 줄이 늘면 그만큼 커진다. */
+    minHeight: 125,
+    /** 글 위아래 안쪽 여백. 두 줄 이상일 때 높이 계산에 쓴다. */
+    paddingY: 34,
+    /** 번호 칸 너비. "01"과 제목 사이 간격을 포함한다. */
+    labelWidth: 90,
+    /** 오른쪽 끝 쪽수 칸 너비. */
+    pageWidth: 120,
+    /** 제목과 쪽수 칸 사이. */
+    gap: 24,
+  },
+  separator: { weight: 2 },
+} as const;
+
 /** 쪽번호 위치. */
 export const PAGE_NUMBER = {
   right: 1415,

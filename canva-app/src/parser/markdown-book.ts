@@ -6,12 +6,15 @@ import type {
   ComparisonPage,
   ConceptPage,
   ContentSection,
+  CoverPage,
   FlowchartConnection,
   FlowchartNode,
   PracticeChecklistPage,
   PracticeOpeningPage,
   ScreenshotGuidePage,
   StepProcessPage,
+  TocEntry,
+  TocPage,
 } from "../types/book-spec";
 import {
   BookSpecValidationError,
@@ -155,6 +158,11 @@ export function checkBookMarkdown(source: string): ManuscriptCheck {
     numbering: field("numbering", (value) =>
       enumValue(value ?? "auto", ["auto", "none"], "numbering"),
     ),
+    pageStart: field("page_start", (value) =>
+      value === undefined
+        ? undefined
+        : positiveIntegerValue(value, "page_start"),
+    ),
     toc: field("toc", (value) =>
       enumValue(value ?? "none", ["auto", "none"], "toc"),
     ),
@@ -189,7 +197,12 @@ export function checkBookMarkdown(source: string): ManuscriptCheck {
       }
     }
     try {
-      const page = parsePage(rawPage);
+      const parsed = parsePage(rawPage);
+      // 표지의 기관명은 Front Matter의 institution이 기본값이다.
+      const page: BookPage =
+        parsed.type === "cover" && !parsed.institution && header.institution
+          ? { ...parsed, institution: header.institution }
+          : parsed;
       // 문법 오류가 있는 페이지는 내용이 어긋나 있어 같은 원인을 다른 말로 한 번
       // 더 지적하게 된다. 문법을 고친 뒤에 검증한다.
       if (!issues.slice(before).some((issue) => issue.severity === "error")) {
@@ -365,6 +378,10 @@ function parsePage(rawPage: RawPage): BookPage {
   const id = requiredAttribute(rawPage, "id");
   validateImageDirectives(rawPage, type);
   switch (type) {
+    case "cover":
+      return parseCover(rawPage, id);
+    case "toc":
+      return parseToc(rawPage, id);
     case "chapter-opening":
       return parseChapterOpening(rawPage, id);
     case "concept":
@@ -450,6 +467,8 @@ function validateImageDirectives(rawPage: RawPage, type: string): void {
         first,
         "step-process 페이지에는 image를 넣을 수 없습니다. 화면 캡처가 필요한 따라하기는 screenshot-guide 페이지를 쓰세요.",
       );
+    case "cover":
+    case "toc":
     case "comparison":
     case "practice-opening":
     case "practice-checklist":
@@ -487,6 +506,120 @@ function validateImageDirectives(rawPage: RawPage, type: string): void {
       throw error;
     }
   }
+}
+
+/**
+ * 표지. `# 제목` 하나와 선택인 `## 부제목` 하나만 받는다.
+ *
+ * 제작사 표시와 기관명은 글이 아니라 page 속성(`brand`, `institution`)이다.
+ * `institution`을 적지 않으면 Front Matter의 `institution`을 쓴다
+ * (`checkBookMarkdown`이 채운다).
+ */
+function parseCover(rawPage: RawPage, id: string): CoverPage {
+  const lines = rawPage.body.split("\n");
+  const titleIndex = firstHeadingIndex(lines, 1, rawPage, "표지 제목");
+  let subtitle: string | undefined;
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || index === titleIndex) {
+      return;
+    }
+    if (/^##\s+/.test(trimmed) && subtitle === undefined) {
+      subtitle = headingText(trimmed, 2);
+      return;
+    }
+    throw new MarkdownBookParseError(
+      "cover 페이지에는 '# 제목'과 '## 부제목' 하나씩만 적을 수 있습니다. 제작사 표시와 기관명은 brand·institution 속성으로 적어 주세요.",
+      rawPage.startLine + 1 + index,
+    );
+  });
+  const brand = optionalAttribute(rawPage, "brand");
+  const institution = optionalAttribute(rawPage, "institution");
+  return {
+    type: "cover",
+    id,
+    title: headingText(lines[titleIndex] ?? "", 1),
+    ...(subtitle ? { subtitle } : {}),
+    ...(brand ? { brand } : {}),
+    ...(institution ? { institution } : {}),
+  };
+}
+
+/** 목차 표의 열 수. 번호·제목, 또는 번호·제목·쪽. */
+const TOC_COLUMNS = { min: 2, max: 3 } as const;
+
+/**
+ * 목차. `# 제목` 아래에 Markdown 표 하나를 받는다.
+ *
+ * 머리글 행은 자리만 차지하고 지면에 나오지 않는다. 본문 행의 첫 칸이 번호,
+ * 둘째 칸이 제목, 셋째 칸(선택)이 쪽수다. 쪽수는 앱이 계산하지 않는다. 단원별
+ * 원고의 쪽 범위는 `npm run validate -- --layout`이 알려 준다.
+ */
+function parseToc(rawPage: RawPage, id: string): TocPage {
+  const lines = rawPage.body.split("\n");
+  const titleIndex = firstHeadingIndex(lines, 1, rawPage, "목차 제목");
+  const tableStart = lines.findIndex((line) => /^\s*\|.*\|\s*$/.test(line));
+  if (tableStart < 0 || !isTableSeparator(lines[tableStart + 1] ?? "")) {
+    throw new MarkdownBookParseError(
+      "toc 페이지에는 Markdown 표가 필요합니다. 번호 | 제목 | 쪽 순서로 적어 주세요.",
+      rawPage.startLine,
+    );
+  }
+  const tableLines = takeWhile(lines.slice(tableStart), (line) =>
+    /^\s*\|.*\|\s*$/.test(line),
+  );
+  const tableLine =
+    rawPage.startLine +
+    1 +
+    rawPage.bodyLines.findIndex((raw) => raw === tableLines[0]);
+  const columnCount = tableCells(tableLines[0] ?? "").length;
+  if (columnCount < TOC_COLUMNS.min || columnCount > TOC_COLUMNS.max) {
+    throw new MarkdownBookParseError(
+      `toc 표는 2열(번호 | 제목) 또는 3열(번호 | 제목 | 쪽)이어야 합니다. 지금은 ${columnCount}열입니다.`,
+      tableLine,
+    );
+  }
+  const stray = lines.findIndex(
+    (line, index) =>
+      index !== titleIndex &&
+      line.trim().length > 0 &&
+      (index < tableStart || index >= tableStart + tableLines.length),
+  );
+  if (stray >= 0) {
+    throw new MarkdownBookParseError(
+      "toc 페이지에는 '# 제목'과 표만 적을 수 있습니다.",
+      rawPage.startLine + 1 + stray,
+    );
+  }
+  const entries: TocEntry[] = tableLines.slice(2).map((line, offset) => {
+    const cells = tableCells(line);
+    if (cells.length !== columnCount) {
+      throw new MarkdownBookParseError(
+        `toc 표의 행은 머리글과 같은 ${columnCount}칸이어야 합니다.`,
+        tableLine + 2 + offset,
+      );
+    }
+    const [label = "", title = "", page = ""] = cells;
+    if (!label || !title) {
+      throw new MarkdownBookParseError(
+        "toc 표의 번호와 제목 칸은 비울 수 없습니다.",
+        tableLine + 2 + offset,
+      );
+    }
+    return { label, title, ...(page ? { page } : {}) };
+  });
+  if (entries.length === 0) {
+    throw new MarkdownBookParseError(
+      "toc 표에 항목 행이 하나 이상 필요합니다.",
+      tableLine,
+    );
+  }
+  return {
+    type: "toc",
+    id,
+    title: headingText(lines[titleIndex] ?? "", 1),
+    entries,
+  };
 }
 
 function parseChapterOpening(rawPage: RawPage, id: string): BookPage {
@@ -1074,6 +1207,13 @@ function numberValue(value: unknown, field: string): number {
     throw new MarkdownBookParseError(`${field}는 숫자여야 합니다.`);
   }
   return value;
+}
+
+function positiveIntegerValue(value: unknown, field: string): number {
+  if (!Number.isInteger(value) || (value as number) < 1) {
+    throw new MarkdownBookParseError(`${field}는 1 이상의 정수여야 합니다.`);
+  }
+  return value as number;
 }
 
 function enumValue<T extends string>(

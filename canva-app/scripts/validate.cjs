@@ -147,8 +147,13 @@ function layoutOf(spec, source, manuscriptPath) {
   for (const page of pages) {
     counts.set(page.sourcePageId, (counts.get(page.sourcePageId) ?? 0) + 1);
   }
+  const numbers = pages
+    .map((page) => page.pageNumber)
+    .filter((number) => number !== undefined);
   return {
     canvaPages: pages.length,
+    firstPageNumber: numbers[0],
+    lastPageNumber: numbers[numbers.length - 1],
     pages: spec.pages.map((page) => ({
       id: page.id,
       type: page.type,
@@ -227,8 +232,12 @@ if (asJson) {
     const warnings = report.issues.filter(
       (issue) => issue.severity === "warning",
     );
+    const range =
+      report.layout?.firstPageNumber !== undefined
+        ? ` (${report.layout.firstPageNumber}~${report.layout.lastPageNumber}쪽)`
+        : "";
     const summary = report.layout
-      ? `원고 ${report.pages}페이지 → Canva ${report.layout.canvaPages}장`
+      ? `원고 ${report.pages}페이지 → Canva ${report.layout.canvaPages}장${range}`
       : `원고 ${report.pages}페이지`;
     console.log(report.ok ? `✓ ${report.file} — ${summary}` : `✗ ${report.file}`);
     for (const issue of errors) {

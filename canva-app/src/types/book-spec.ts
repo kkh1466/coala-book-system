@@ -13,6 +13,11 @@ export type BookSpec = {
   language: "ko";
   canvas: "coala-portrait";
   numbering: "auto" | "none";
+  /**
+   * 첫 본문 쪽에 매길 번호. 적지 않으면 1. 단원별로 나눠 만든 책을 이어
+   * 붙일 때 앞 단원이 끝난 다음 번호부터 시작하게 한다.
+   */
+  pageStart?: number;
   toc: "auto" | "none";
   institution?: string;
   assetsDir?: string;
@@ -27,6 +32,8 @@ type PageBase = {
 };
 
 export type BookPage =
+  | CoverPage
+  | TocPage
   | ChapterOpeningPage
   | ConceptPage
   | ComparisonPage
@@ -35,6 +42,43 @@ export type BookPage =
   | FlowchartPage
   | ScreenshotGuidePage
   | StepProcessPage;
+
+/**
+ * 표지.
+ *
+ * 쪽번호를 세지도 찍지도 않는다(`builder/plan-book.ts`의 UNNUMBERED_PAGE_TYPES).
+ * 단원별로 나눠 만든 책의 맨 앞에 한 번만 놓는다.
+ */
+export type CoverPage = PageBase & {
+  type: "cover";
+  title: string;
+  subtitle?: string;
+  /** 지면 위쪽 가운데의 제작사 표시. 원고의 `brand` 속성. */
+  brand?: string;
+  /** 지면 아래쪽 가운데의 기관명. 원고의 `institution` 속성 또는 Front Matter. */
+  institution?: string;
+};
+
+/** 목차의 한 줄. 쪽은 원고가 적는다. 앱은 다른 원고의 쪽수를 알 수 없다. */
+export type TocEntry = {
+  /** 왼쪽의 번호 표시(예: "01"). */
+  label: string;
+  title: string;
+  /** 오른쪽 끝의 쪽수. 비우면 찍지 않는다. */
+  page?: string;
+};
+
+/**
+ * 목차.
+ *
+ * `toc: auto`(자동 목차)와 다르다. 이 페이지는 원고가 항목과 쪽수를 직접 적은
+ * 목차이며, 쪽번호를 세지도 찍지도 않는다.
+ */
+export type TocPage = PageBase & {
+  type: "toc";
+  title: string;
+  entries: TocEntry[];
+};
 
 export type ChapterOpeningPage = PageBase & {
   type: "chapter-opening";
@@ -235,6 +279,12 @@ export function validateBookPage(page: BookPage, pageIndex: number): void {
   const prefix = `pages[${pageIndex}]`;
   requireText(page.id, `${prefix}.id`);
   switch (page.type) {
+    case "cover":
+      requireText(page.title, `${prefix}.title`);
+      break;
+    case "toc":
+      validateTocPage(page, pageIndex);
+      break;
     case "chapter-opening":
       validateChapterOpeningPage(page, pageIndex);
       break;
@@ -268,6 +318,21 @@ export function validateBookPage(page: BookPage, pageIndex: number): void {
       );
     }
   }
+}
+
+function validateTocPage(page: TocPage, pageIndex: number): void {
+  const prefix = `pages[${pageIndex}]`;
+  requireText(page.title, `${prefix}.title`);
+  if (!Array.isArray(page.entries) || page.entries.length === 0) {
+    throw new BookSpecValidationError(`${prefix}.entries must not be empty.`);
+  }
+  page.entries.forEach((entry, index) => {
+    requireText(entry.label, `${prefix}.entries[${index}].label`);
+    requireText(entry.title, `${prefix}.entries[${index}].title`);
+    if (entry.page !== undefined) {
+      requireText(entry.page, `${prefix}.entries[${index}].page`);
+    }
+  });
 }
 
 function validateChapterOpeningPage(
