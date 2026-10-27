@@ -122,7 +122,7 @@ export function responseItems(
     ),
   );
   // 응답 안에는 문단과 목록만 온다. 원고 검사가 나머지를 거절한다.
-  const blocks = parseBlocks(markdown).filter(
+  const blocks = parseBlocks(markdown, false).filter(
     (block): block is Extract<ContentBlock, { kind: "paragraph" | "list" }> =>
       block.kind === "paragraph" || block.kind === "list",
   );
@@ -135,8 +135,7 @@ export function responseItems(
     blocks.length === 1 &&
     blocks[0]?.kind === "paragraph" &&
     inner.length === 1 &&
-    (inner[0]?.height ?? 0) <=
-      lineHeight(TYPOGRAPHY.body, LINE_HEIGHT.global);
+    (inner[0]?.height ?? 0) <= lineHeight(TYPOGRAPHY.body, LINE_HEIGHT.global);
   const paddingY = oneLine ? PROMPT_BOX.paddingY : PROMPT_BOX.responsePaddingY;
   const padding = paddingY * 2;
 

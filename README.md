@@ -167,3 +167,17 @@ coala-book-md/<교재>/
 - [references/manuscript-format.md](skill/coala-canva-textbook/references/manuscript-format.md) — 원고 문법
 - [references/manuscript-authoring.md](skill/coala-canva-textbook/references/manuscript-authoring.md) — 원재료에서 원고 쓰기
 - [references/page-types.md](skill/coala-canva-textbook/references/page-types.md) — 페이지 타입과 블록
+
+## 수식 조판
+
+`notes.md`에서 원고를 작성할 때 주요 수식을 아래 문법으로 적으면, Canva 앱이 분수·루트·지수·집합 기호를 SVG로 자동 조판한다. 현재는 `concept layout="basic"`의 독립 본문 블록만 지원한다.
+
+```latex
+$$
+P(A)=\frac{\text{사건 A가 일어나는 경우의 수}}{\text{일어날 수 있는 모든 경우의 수}}
+$$
+```
+
+한글은 `\text{...}`, 조건부 기호는 `\mid`, 교집합은 `\cap`, 백분율은 `\%`로 쓴다. 긴 식은 `aligned`로 줄바꿈한다. 원고 검증 명령도 같은 렌더러로 수식 문법과 실제 크기를 확인한다. 수식이 없는 원고에서는 렌더러와 글꼴을 초기화하지 않는다.
+
+빠른 테스트는 [test-input/math-smoke.md](test-input/math-smoke.md)를 앱에서 선택한 뒤 **교재 페이지 생성**을 누른다. 이미지 폴더는 필요 없다. 한글 분수, 루트·지수, 집합·조건부 확률, 여러 줄 계산 등 수식 4개가 자동으로 들어간다. 수식은 Canva에서 전체 위치·크기를 조절하며, 식의 내용은 원고에서 수정하여 다시 생성한다. 인라인·표·목록·카드·강조 박스 안 수식은 아직 지원하지 않는다.

@@ -89,7 +89,10 @@ let layoutModules;
  * 파일 시스템을 직접 읽고 크기는 헤더에서 알아낸다. 없는 파일은 자리로 남는다.
  */
 function resolveImageFiles(source, manuscriptPath) {
-  const { imageSrcsOf, ratioLabelOf } = require("../src/builder/image-assets.ts");
+  const {
+    imageSrcsOf,
+    ratioLabelOf,
+  } = require("../src/builder/image-assets.ts");
   const { imageSizeOf } = require("../src/utils/image-size.ts");
   const images = new Map();
   const missing = [];
@@ -119,7 +122,7 @@ function resolveImageFiles(source, manuscriptPath) {
   return { images, missing, unreadable };
 }
 
-function layoutOf(spec, source, manuscriptPath) {
+function layoutOf(spec, source, manuscriptPath, equations) {
   if (!layoutModules) {
     installCanvaStubs();
     layoutModules = {
@@ -141,6 +144,7 @@ function layoutOf(spec, source, manuscriptPath) {
     boldWeight: "bold",
     source: "canva-default",
     images: files.images,
+    ...(equations.count ? { math: equations.math } : {}),
   };
   const pages = layoutBook(spec, planBook(spec).pages, fonts);
   const counts = new Map();
@@ -188,98 +192,131 @@ function layoutOf(spec, source, manuscriptPath) {
 
 // npm은 스크립트를 package.json 위치에서 실행한다. 사용자가 명령을 친 자리를
 // 기준으로 경로를 읽어야 상대 경로가 어긋나지 않는다.
-const baseDir = process.env.INIT_CWD || process.cwd();
+async function main() {
+  const { prepareMath } = require("../src/builder/prepare-math.ts");
+  const baseDir = process.env.INIT_CWD || process.cwd();
 
-let failed = false;
-const reports = files.map((file) => {
-  const fullPath = path.resolve(baseDir, file);
-  let source;
-  try {
-    source = fs.readFileSync(fullPath, "utf8");
-  } catch (error) {
-    failed = true;
-    return {
-      file,
-      ok: false,
-      issues: [
-        { severity: "error", message: `파일을 읽을 수 없습니다: ${error.message}` },
-      ],
-    };
-  }
-  const { spec, issues } = checkBookMarkdown(source);
-  const report = { file, ok: spec !== undefined, pages: spec?.pages.length, issues };
-  if (report.ok && withLayout) {
-    try {
-      report.layout = layoutOf(spec, source, fullPath);
-    } catch (error) {
-      // 배치 단계의 원고 오류(카드에 들어가지 않는 글 등)도 원고 오류다.
-      report.ok = false;
-      report.issues = [
-        ...issues,
-        { severity: "error", message: `배치 오류: ${error.message}` },
-      ];
-    }
-  }
-  failed ||= !report.ok;
-  return report;
-});
-
-if (asJson) {
-  console.log(JSON.stringify(reports, null, 2));
-} else {
-  for (const report of reports) {
-    const errors = report.issues.filter((issue) => issue.severity === "error");
-    const warnings = report.issues.filter(
-      (issue) => issue.severity === "warning",
-    );
-    const range =
-      report.layout?.firstPageNumber !== undefined
-        ? ` (${report.layout.firstPageNumber}~${report.layout.lastPageNumber}쪽)`
-        : "";
-    const summary = report.layout
-      ? `원고 ${report.pages}페이지 → Canva ${report.layout.canvaPages}장${range}`
-      : `원고 ${report.pages}페이지`;
-    console.log(report.ok ? `✓ ${report.file} — ${summary}` : `✗ ${report.file}`);
-    for (const issue of errors) {
-      console.log(`  오류  ${formatManuscriptIssue(issue)}`);
-    }
-    for (const issue of warnings) {
-      console.log(`  경고  ${formatManuscriptIssue(issue)}`);
-    }
-    if (errors.length > 0 || warnings.length > 0) {
-      console.log(`  오류 ${errors.length}건, 경고 ${warnings.length}건`);
-    }
-    if (report.layout) {
-      for (const page of report.layout.pages) {
-        const split = page.canvaPages > 1 ? "  ← 분할됨" : "";
-        console.log(`  ${page.id} (${page.type}): ${page.canvaPages}장${split}`);
+  let failed = false;
+  const reports = await Promise.all(
+    files.map(async (file) => {
+      const fullPath = path.resolve(baseDir, file);
+      let source;
+      try {
+        source = fs.readFileSync(fullPath, "utf8");
+      } catch (error) {
+        failed = true;
+        return {
+          file,
+          ok: false,
+          issues: [
+            {
+              severity: "error",
+              message: `파일을 읽을 수 없습니다: ${error.message}`,
+            },
+          ],
+        };
       }
-      const { images, placedImages, unreadableImages, flowcharts } = report.layout;
-      console.log(
-        `  이미지: 파일로 채움 ${placedImages.length}곳, 자리로 비움 ${images.length}곳, 순서도 자리 ${flowcharts.length}곳`,
+      const { spec, issues } = checkBookMarkdown(source);
+      const report = {
+        file,
+        ok: spec !== undefined,
+        pages: spec?.pages.length,
+        issues,
+      };
+      if (report.ok) {
+        try {
+          const equations = await prepareMath(spec);
+          if (equations.count) report.mathCount = equations.count;
+          if (withLayout)
+            report.layout = layoutOf(spec, source, fullPath, equations);
+        } catch (error) {
+          // 배치 단계의 원고 오류(카드에 들어가지 않는 글 등)도 원고 오류다.
+          report.ok = false;
+          report.issues = [
+            ...issues,
+            ...(error.issues ?? [
+              { severity: "error", message: `배치 오류: ${error.message}` },
+            ]),
+          ];
+        }
+      }
+      failed ||= !report.ok;
+      return report;
+    }),
+  );
+
+  if (asJson) {
+    console.log(JSON.stringify(reports, null, 2));
+  } else {
+    for (const report of reports) {
+      const errors = report.issues.filter(
+        (issue) => issue.severity === "error",
       );
-      for (const image of placedImages) {
-        const role = image.role === "result" ? " · 실행 결과" : "";
-        const ratio = image.ratioChanged
-          ? `${image.fileRatio} (원고 ${image.manuscriptRatio} → 파일 비율 우선)`
-          : image.fileRatio;
-        console.log(`    ${image.page}쪽 · ${image.src} · 파일 있음 · ${ratio} · ${image.size}px${role}`);
+      const warnings = report.issues.filter(
+        (issue) => issue.severity === "warning",
+      );
+      const range =
+        report.layout?.firstPageNumber !== undefined
+          ? ` (${report.layout.firstPageNumber}~${report.layout.lastPageNumber}쪽)`
+          : "";
+      const summary = report.layout
+        ? `원고 ${report.pages}페이지 → Canva ${report.layout.canvaPages}장${range}`
+        : `원고 ${report.pages}페이지`;
+      console.log(
+        report.ok ? `✓ ${report.file} — ${summary}` : `✗ ${report.file}`,
+      );
+      for (const issue of errors) {
+        console.log(`  오류  ${formatManuscriptIssue(issue)}`);
       }
-      for (const image of images) {
-        const role = image.role === "result" ? " · 실행 결과" : "";
+      for (const issue of warnings) {
+        console.log(`  경고  ${formatManuscriptIssue(issue)}`);
+      }
+      if (errors.length > 0 || warnings.length > 0) {
+        console.log(`  오류 ${errors.length}건, 경고 ${warnings.length}건`);
+      }
+      if (report.layout) {
+        for (const page of report.layout.pages) {
+          const split = page.canvaPages > 1 ? "  ← 분할됨" : "";
+          console.log(
+            `  ${page.id} (${page.type}): ${page.canvaPages}장${split}`,
+          );
+        }
+        const { images, placedImages, unreadableImages, flowcharts } =
+          report.layout;
         console.log(
-          `    ${image.page}쪽 · ${image.src} · 파일 없음 · ${image.ratio} · ${image.size}px${role} — ${image.alt}`,
+          `  이미지: 파일로 채움 ${placedImages.length}곳, 자리로 비움 ${images.length}곳, 순서도 자리 ${flowcharts.length}곳`,
         );
-      }
-      for (const src of unreadableImages) {
-        console.log(`    ${src} · 파일은 있으나 크기를 읽지 못함(png/jpg/gif/webp만) → 자리로 비움`);
-      }
-      for (const flowchart of flowcharts) {
-        console.log(
-          `    ${flowchart.page}쪽 · ${flowchart.title} · ${flowchart.controlStructure ?? "구조 미지정"} · 노드 ${flowchart.nodes ?? "?"}개`,
-        );
+        for (const image of placedImages) {
+          const role = image.role === "result" ? " · 실행 결과" : "";
+          const ratio = image.ratioChanged
+            ? `${image.fileRatio} (원고 ${image.manuscriptRatio} → 파일 비율 우선)`
+            : image.fileRatio;
+          console.log(
+            `    ${image.page}쪽 · ${image.src} · 파일 있음 · ${ratio} · ${image.size}px${role}`,
+          );
+        }
+        for (const image of images) {
+          const role = image.role === "result" ? " · 실행 결과" : "";
+          console.log(
+            `    ${image.page}쪽 · ${image.src} · 파일 없음 · ${image.ratio} · ${image.size}px${role} — ${image.alt}`,
+          );
+        }
+        for (const src of unreadableImages) {
+          console.log(
+            `    ${src} · 파일은 있으나 크기를 읽지 못함(png/jpg/gif/webp만) → 자리로 비움`,
+          );
+        }
+        for (const flowchart of flowcharts) {
+          console.log(
+            `    ${flowchart.page}쪽 · ${flowchart.title} · ${flowchart.controlStructure ?? "구조 미지정"} · 노드 ${flowchart.nodes ?? "?"}개`,
+          );
+        }
       }
     }
   }
+  process.exit(failed ? 1 : 0);
 }
-process.exit(failed ? 1 : 0);
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

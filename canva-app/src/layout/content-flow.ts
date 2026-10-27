@@ -15,6 +15,7 @@ import { createRichText } from "../builder/element-factory";
 import type { FlowItem, PlacedItem } from "./flow";
 import { imagePlaceholderItem } from "./image-placeholder";
 import { lineHeight, measureText } from "./measure";
+import { mathBlockItem, MATH_GAP } from "./math-block";
 import { codeItems } from "./code-block";
 import { flowStripItem } from "./flow-strip";
 import { promptItem, responseItems } from "./prompt-response";
@@ -261,6 +262,8 @@ function gapBefore(next: ContentBlock | undefined, isLast: boolean): number {
     return 0;
   }
   switch (next.kind) {
+    case "math":
+      return MATH_GAP;
     case "image":
       return GAP.beforeImage;
     case "prompt":
@@ -300,6 +303,16 @@ export function blockFlowItems(
   blocks.forEach((block, index) => {
     const next = blocks[index + 1];
     const isLast = index === blocks.length - 1;
+
+    if (block.kind === "math") {
+      items.push(
+        mathBlockItem(block.tex, style, {
+          gapAfter: isLast ? 0 : GAP.afterMath,
+          maxHeight: options.maxItemHeight,
+        }),
+      );
+      return;
+    }
 
     if (block.kind === "image") {
       items.push(
@@ -376,7 +389,8 @@ export function blockFlowItems(
           block.ordered ? `${itemIndex + 1}.` : DISC,
           style,
           lastItem
-            ? next?.kind === "image" ||
+            ? next?.kind === "math" ||
+              next?.kind === "image" ||
               next?.kind === "prompt" ||
               next?.kind === "code" ||
               next?.kind === "flow"

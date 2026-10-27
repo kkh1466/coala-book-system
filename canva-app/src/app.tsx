@@ -711,6 +711,12 @@ export function App() {
         {
           alreadyCreatedIndexes,
           images: imageAssets,
+          onMathProgress: ({ completed, total }) => {
+            setProgress({
+              message: `수식 ${completed}/${total}개 준비 중`,
+              completed: 0,
+            });
+          },
           onProgress: (event) => {
             setProgress({
               message: describeProgress(event),
@@ -933,6 +939,17 @@ export function App() {
           </Alert>
         )}
         {result && <FontReport result={result} />}
+        {!!result?.mathCount && (
+          <Alert
+            tone="positive"
+            title={`수식 ${result.mathCount}개를 자동 조판했습니다`}
+          >
+            <Text size="small">
+              수식의 위치와 크기는 Canva에서 조절할 수 있습니다. 식의 내용은
+              원고에서 수정한 뒤 다시 생성해 주세요.
+            </Text>
+          </Alert>
+        )}
         {result && <PlacedImagesReport result={result} />}
         {result && <PendingImagesReport result={result} />}
         {result && <PendingFlowchartsReport result={result} />}

@@ -1,3 +1,5 @@
+import { prepareMath } from "./prepare-math";
+import type { MathProgress } from "./prepare-math";
 import type { PageId } from "@canva/design";
 import type { BookSpec } from "../types/book-spec";
 import { validateBookSpec } from "../types/book-spec";
@@ -45,6 +47,8 @@ export type CreatedPageRef = {
 };
 
 export type CreateBookResult = {
+  /** Equations generated automatically, separate from image placeholders. */
+  mathCount?: number;
   /** 원고 전체 페이지 수. */
   pageCount: number;
   /** 이번 실행에서 생성을 끝낸 페이지 수. */
@@ -120,6 +124,7 @@ export type CreateBookDeps = {
 
 export type CreateBookOptions = {
   onProgress?: (event: BookProgressEvent) => void;
+  onMathProgress?: (event: MathProgress) => void;
   /**
    * 이전 실행에서 이미 만들어진 페이지의 계획 순서. 여기에 있는 페이지는
    * 다시 만들지 않는다.
@@ -232,6 +237,7 @@ export async function createBook(
   // 끝난 뒤에만 존재하므로 한 원고 페이지가 여러 장이 되어도 번호가 어긋나지
   // 않는다.
   const plan = planBook(spec);
+  const equations = await prepareMath(spec, options.onMathProgress);
 
   // 순서도 페이지는 생성을 막지 않는다. 앱은 순서도를 그리지 않고 자리만 비워
   // 두며(`page-types/flowchart.ts`), 그 목록을 결과에 실어 사용자에게 알린다.
@@ -245,11 +251,11 @@ export async function createBook(
   }
 
   const layoutWith = (fonts: ResolvedBookFonts): LaidOutPage[] =>
-    layoutBook(
-      spec,
-      plan.pages,
-      options.images ? { ...fonts, images: options.images } : fonts,
-    );
+    layoutBook(spec, plan.pages, {
+      ...fonts,
+      ...(options.images ? { images: options.images } : {}),
+      ...(equations.count ? { math: equations.math } : {}),
+    });
 
   // 분할 결과는 글꼴에 따라 달라지지 않으므로 페이지 수를 미리 확정할 수 있다.
   let laidOut = layoutWith(firstCandidate);
@@ -497,6 +503,7 @@ export async function createBook(
   options.onProgress?.({ type: "completed", total, completed });
 
   return {
+    ...(equations.count ? { mathCount: equations.count } : {}),
     pageCount: total,
     createdPageCount: records.filter((record) => record.status === "done")
       .length,

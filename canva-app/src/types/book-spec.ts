@@ -1,3 +1,4 @@
+import { mathPageProblems } from "../builder/math-source";
 import {
   fenceLanguage,
   findCodeResultProblems,
@@ -317,6 +318,12 @@ export function validateBookPage(page: BookPage, pageIndex: number): void {
         )}`,
       );
     }
+  }
+  const mathProblems = mathPageProblems(page);
+  if (mathProblems.length) {
+    throw new BookSpecValidationError(
+      `${prefix} (${page.id}): ${mathProblems[0]}`,
+    );
   }
 }
 

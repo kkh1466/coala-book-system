@@ -1,3 +1,5 @@
+import { scanMathBlocks } from "./math-block";
+import { rememberMathSources } from "../builder/math-source";
 import { parse as parseYaml } from "yaml";
 import type {
   BookPage,
@@ -220,6 +222,16 @@ export function checkBookMarkdown(source: string): ManuscriptCheck {
   }
 
   const spec = { ...header, pages } as BookSpec;
+  rememberMathSources(
+    spec,
+    rawPages.flatMap((page) =>
+      scanMathBlocks(page.bodyLines).blocks.map((block) => ({
+        tex: block.tex,
+        pageId: page.attributes.id ?? "",
+        line: page.startLine + 1 + block.start,
+      })),
+    ),
+  );
   try {
     validateBookSpec(spec);
   } catch (error) {
@@ -1010,7 +1022,12 @@ function extractCallout(lines: string[]): {
 } {
   const output: string[] = [];
   let callout: Callout | undefined;
+  const math = scanMathBlocks(lines).mask;
   for (let index = 0; index < lines.length; index += 1) {
+    if (math[index]) {
+      output.push(lines[index] ?? "");
+      continue;
+    }
     const marker = lines[index]?.match(/^>\s*\[!(TIP|KEY_POINT)\]\s*$/i);
     if (!marker) {
       output.push(lines[index] ?? "");
@@ -1141,7 +1158,9 @@ function blockText(lines: string[]): string {
  */
 function fenceMask(lines: readonly string[]): boolean[] {
   let inside = false;
-  return lines.map((line) => {
+  const math = scanMathBlocks(lines).mask;
+  return lines.map((line, index) => {
+    if (math[index]) return true;
     if (/^\s*```/.test(line)) {
       inside = !inside;
       return true;

@@ -10,6 +10,7 @@ import { parseBlocks } from "../parser/blocks";
 import { plainText } from "../parser/inline";
 import type { FlowItem } from "../layout/flow";
 import {
+  balanceSparsePages,
   flowIntoPages,
   pendingImagesOf,
   placedImagesOf,
@@ -208,9 +209,12 @@ export function layoutConcept(
         }
       }
       items.push(
-        headingItem(section.title, wide, {
-          fontSize: TYPOGRAPHY.subsectionTitle,
-        }),
+        {
+          ...headingItem(section.title, wide, {
+            fontSize: TYPOGRAPHY.subsectionTitle,
+          }),
+          startsSection: true,
+        },
         ...blockFlowItems(parseBlocks(sectionMarkdown(section)), narrow, {
           maxItemHeight,
         }),
@@ -245,7 +249,16 @@ export function layoutConcept(
       : undefined,
   );
 
-  return pages.map((placed, index) => {
+  const balanced =
+    page.layout === "cards"
+      ? pages
+      : balanceSparsePages(
+          pages,
+          { top: PAGE.safeTop, bottom: PAGE.safeBottom },
+          continuationInset(PAGE.safeTop, page.title, wide.width),
+        );
+
+  return balanced.map((placed, index) => {
     const pendingImages = pendingImagesOf(placed);
     const placedImages = placedImagesOf(placed);
     return {

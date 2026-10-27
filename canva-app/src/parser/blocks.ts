@@ -1,3 +1,4 @@
+import { scanMathBlocks } from "./math-block";
 import type { ImageDirective } from "./image-directive";
 import {
   isImageDirectiveLine,
@@ -17,6 +18,7 @@ import { parseFlowLines } from "./flow-strip";
  * 남았다. 여기서는 빈 줄을 문단 경계로, `- `/`1. `를 목록으로 보존한다.
  */
 export type ContentBlock =
+  | { kind: "math"; tex: string }
   | { kind: "paragraph"; segments: InlineSegment[] }
   | {
       kind: "list";
@@ -74,11 +76,16 @@ const HEADING = /^\s*#{1,6}\s+/;
  * - ```` ```prompt ````·```` ```response ```` 블록은 닫는 ```` ``` ```` 줄까지가
  *   한 블록이다. 짝과 위치의 검증도 원고 검사가 맡는다.
  */
-export function parseBlocks(markdown: string): ContentBlock[] {
+export function parseBlocks(
+  markdown: string,
+  allowMath = true,
+): ContentBlock[] {
   const blocks: ContentBlock[] = [];
   let paragraph: string[] = [];
   let list: { ordered: boolean; items: string[] } | undefined;
   const lines = markdown.split("\n");
+  const math = allowMath ? scanMathBlocks(lines) : undefined;
+  const equations = new Map(math?.blocks.map((block) => [block.start, block]));
 
   const flushParagraph = () => {
     if (paragraph.length === 0) {
@@ -106,6 +113,15 @@ export function parseBlocks(markdown: string): ContentBlock[] {
   for (let index = 0; index < lines.length; index += 1) {
     const rawLine = lines[index] ?? "";
     const line = rawLine.trim();
+
+    const equation = equations.get(index);
+    if (equation) {
+      flushParagraph();
+      flushList();
+      blocks.push({ kind: "math", tex: equation.tex });
+      index = equation.end;
+      continue;
+    }
 
     if (line.length === 0) {
       flushParagraph();

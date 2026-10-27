@@ -120,3 +120,7 @@ Use this order when a page is crowded:
 Never solve density by reducing confirmed typography or line spacing.
 
 Do not enforce estimated limits such as characters per line or lines per page until they have been measured from multiple retained reference pages. Use rendered-page inspection as the current density test.
+
+## Mathematical typesetting
+
+Standalone math blocks use the fixed 28 pt body scale, TeX math glyphs, and bundled Wanted Sans outlines for Korean labels. Mathematical scripts and root indices use proportional sizes; mathematical internal spacing follows the renderer rather than paragraph line spacing 2. This is a math-specific exception to the ordinary text rules. Surrounding paragraphs retain their typography and spacing. Measure the actual SVG, keep its aspect ratio, and move it to another page or ask for an explicit equation break when it does not fit. Never shrink the whole formula to solve page density.

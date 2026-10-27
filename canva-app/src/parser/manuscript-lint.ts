@@ -1,3 +1,4 @@
+import { scanMathBlocks } from "./math-block";
 import {
   findCodeResultProblems,
   isResultImageLine,
@@ -69,6 +70,21 @@ export function lintPageBody(
     }
   }
 
+  const math = scanMathBlocks(bodyLines);
+  math.problems.forEach((problem) => report(problem.line, problem.message));
+  for (const block of math.blocks) {
+    if (type !== "concept" || (layout ?? "basic") !== "basic") {
+      report(
+        block.start,
+        '수식 블록은 concept layout="basic" 본문에서만 사용할 수 있습니다.',
+      );
+    } else if (
+      !bodyLines.slice(0, block.start).some((line) => /^#\s+/.test(line))
+    ) {
+      report(block.start, "수식은 페이지 제목 아래에 두어야 합니다.");
+    }
+  }
+
   const headingCounts = new Map<number, number>();
   // 제목이 아예 없는 페이지는 페이지 파서가 그 사유로 거절한다. 그때 모든 줄을
   // "제목 위의 글"로 다시 지적하지 않는다.
@@ -85,6 +101,7 @@ export function lintPageBody(
   let tableZone: "before" | "inside" | "after" = "before";
 
   for (let index = 0; index < bodyLines.length; index += 1) {
+    if (math.mask[index]) continue;
     const raw = bodyLines[index] ?? "";
     const line = raw.trim();
 

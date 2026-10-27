@@ -54,6 +54,7 @@ There are eight supported page types; `concept` has two layouts.
 | `::image{...}` | A supplied image or a later screenshot, illustration, diagram, or result will clarify content. | `concept` basic, chapter-opening concept subsection, or one per screenshot-guide step. A GUI code result uses `role="result"`. |
 | Fenced code + `output` or result image | A runnable example is needed to explain behaviour. | `concept` basic only; exactly one real result immediately after each code block. |
 | `prompt` + `response` | The lesson examines a specific AI exchange. | `concept` basic only; keep the pair adjacent. Do not invent a sourced response. |
+| `$$` math block | A fraction, root, power, set expression, or probability formula needs mathematical typesetting. | `concept` basic body only; see "Math blocks" in `manuscript-format.md`. No equation image files are needed. |
 | `flow` | Two to five short stages of a simple left-to-right process. | `concept` basic only; not a substitute for a branch or loop. |
 | `flowchart` | Decision or loop nodes and connections need a diagram. | `flowchart` page only; one semantic block, then native Canva construction later. |
 
@@ -106,3 +107,7 @@ Write for readability at 28 pt on a portrait page:
 확인할 사실
 - 이 교재는 Flet 0.2x 기준으로 썼습니다. 수업 환경의 버전을 확인해 주세요.
 ```
+
+## Mathematical formulas from notes
+
+When the source notes include important formulas, preserve their meaning and numerical values while expressing fractions, roots, powers, and set/probability notation as standalone LaTeX math blocks. Use `\text{...}` for Korean labels. Prefer a separate readable formula over a long bold line of text using division signs. Break long derivations with `aligned` or multiple formula blocks; never reduce the base font size to fit. Keep short mentions such as P(A) in prose, and place an explanation next to the standalone formula when needed. Math blocks do not belong in lists, tables, cards, headings, or callouts; use a basic concept page for them. Run the complete `--layout` validation and check final page ranges after changing formulas.

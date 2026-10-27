@@ -44,6 +44,8 @@ export const TEXT_WIDTH = 1190;
 export const GAP = {
   /** 문단과 문단 사이. 원본은 줄 간격만으로 문단을 구분한다. */
   paragraph: 0,
+  /** 수식 아래. SVG에는 본문 줄 간격의 여유가 없어 별도 공백을 둔다. */
+  afterMath: 56,
   /** 문단 다음에 목록이 올 때. */
   beforeList: 0,
   /** 목록 항목 사이. 원본 학습 목표 항목 간격 74px = 줄 간격뿐. */

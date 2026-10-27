@@ -11,11 +11,11 @@ Do not modify the original Canva design unless the user explicitly asks for an e
 
 ## Non-negotiable readability rules
 
-- Use Wanted Sans for textbook text except inside flowcharts. Use `Hakgyoansim Chilpanjiugae OTF` for every text element inside a flowchart, including node text and branch labels.
+- Use Wanted Sans for textbook prose except inside flowcharts. Math blocks use the math glyphs and Korean outlines specified in `references/style-guide.md`. Use `Hakgyoansim Chilpanjiugae OTF` for every text element inside a flowchart, including node text and branch labels.
 - Use 50 pt for the main chapter title inside the rounded chapter header, such as `AI 디지털 리터러시`.
 - Use 30 pt for the chapter subtitle and section or subsection headings, such as `AI와 함께하는 디지털 시대`, `학습 목표`, and `생성형 AI란 무엇일까?`.
 - Use 28 pt for body paragraphs, introductory sentences, bullet items, and ordinary explanatory text.
-- Use line spacing 2 and letter spacing 0.
+- Use line spacing 2 and letter spacing 0. Standalone math blocks use mathematical spacing and proportional scripts at the fixed 28 pt base size; see the Math blocks section of `references/manuscript-format.md`.
 - Never reduce any confirmed typography size, tighten spacing, crop text, or reduce margins merely to fit more content.
 - When content does not fit comfortably, split it across additional pages.
 - Prefer fewer elements and more whitespace over a dense page.
@@ -80,7 +80,7 @@ Read [references/manuscript-authoring.md](references/manuscript-authoring.md) wh
 
 1. Preserve all required source content and identify the learning purpose of each section.
 2. Map the content to the page templates and content blocks in `references/page-types.md`.
-3. When the input is Markdown, normalize it to `references/manuscript-format.md` and validate the complete document before creating any Canva pages. Where the Coala Book Builder source is available, run `npm run validate -- <manuscript.md>` from `canva-app/` and fix every reported row until it passes; otherwise check the manuscript against "Supported Markdown, and nothing else" by hand.
+3. When the notes contain fractions, roots, powers, or set/probability formulas, write important formulas as standalone `$$` blocks on `concept layout="basic"` pages, following the Math blocks section of `references/manuscript-format.md`. The app generates the equation graphics; do not add equation image placeholders. When the input is Markdown, normalize it to `references/manuscript-format.md` and validate the complete document before creating any Canva pages. Where the Coala Book Builder source is available, run `npm run validate -- <manuscript.md>` from `canva-app/` and fix every reported row until it passes; otherwise check the manuscript against "Supported Markdown, and nothing else" by hand.
 4. Estimate density using the fixed typography. Split dense content before layout.
 5. For table-of-contents, chapter-opening, and practice-opening pages, duplicate the matching native Canva page instead of recreating its structure when that capability is available.
 6. For flowcharts, classify each node and conditional/loop structure, then follow `references/flowcharts.md` exactly. If the target integration cannot insert or duplicate the required native Canva assets, do not draw substitutes. With the Coala Book Builder app, write the flowchart in the manuscript, let the app reserve its placeholder, and hand the listed placeholders to a person to build in the Canva editor; with any other integration, stop and report the limitation.

@@ -24,6 +24,8 @@ export type FlowItem = {
    * 일이 생기지 않는다.
    */
   keepWithNext?: number;
+  /** 소제목과 본문으로 이루어진 의미 단위의 시작. 분량 재배분 경계로 우선한다. */
+  startsSection?: true;
   /** 이 조각이 비워 둔 이미지 자리일 때만 있다. 생성 후 보고 목록에 쓴다. */
   pendingImage?: PendingImage;
   /** 이 조각이 폴더의 파일로 채운 이미지일 때만 있다. */
@@ -152,4 +154,80 @@ export function totalHeight(items: readonly FlowItem[]): number {
       sum + item.height + (index === items.length - 1 ? 0 : item.gapAfter),
     0,
   );
+}
+
+/**
+ * 넘친 끝 문단만 연속 페이지에 남으면 앞 장의 내용을 함께 넘겨 분량을 고른다.
+ * 먼저 소제목 경계를 고르고, 가능한 소제목 경계가 없으면 블록 경계를 쓴다.
+ * 순서·크기·여백·페이지 수를 유지하며 양쪽의 실제 안전 영역 안에서만 옮긴다.
+ * 다른 원고 페이지와 합치지 않으며, 호출하지 않은 페이지 유형은 기존 분할을 유지한다.
+ */
+export function balanceSparsePages(
+  pages: readonly (readonly PlacedItem[])[],
+  area: SafeArea,
+  continuationInset = 0,
+): PlacedItem[][] {
+  const balanced = pages.map((page) => [...page]);
+  const minFill = 0.35;
+  const capacity = (index: number) =>
+    area.bottom - area.top - (index > 0 ? continuationInset : 0);
+  const position = (items: readonly FlowItem[]): PlacedItem[] => {
+    let top = area.top;
+    return items.map((item) => {
+      const placed = { item, top };
+      top += item.height + item.gapAfter;
+      return placed;
+    });
+  };
+
+  for (let index = balanced.length - 1; index > 0; index -= 1) {
+    const previous = (balanced[index - 1] ?? []).map(({ item }) => item);
+    const current = (balanced[index] ?? []).map(({ item }) => item);
+    const previousCapacity = capacity(index - 1);
+    const currentCapacity = capacity(index);
+    if (previousCapacity <= 0 || currentCapacity <= 0 || !current.length)
+      continue;
+    const currentFill = totalHeight(current) / currentCapacity;
+    if (currentFill >= minFill) continue;
+    const originalDifference = Math.abs(
+      totalHeight(previous) / previousCapacity - currentFill,
+    );
+    const candidates: { cut: number; difference: number; section: boolean }[] =
+      [];
+
+    for (let cut = 1; cut < previous.length; cut += 1) {
+      // 제목·프롬프트와 뒤따르는 본문의 연결을 유지한다.
+      if (previous[cut - 1]?.keepWithNext) continue;
+      const left = previous.slice(0, cut);
+      const right = [...previous.slice(cut), ...current];
+      if (!left.some((item) => !item.keepWithNext)) continue;
+      const leftFill = totalHeight(left) / previousCapacity;
+      const rightFill = totalHeight(right) / currentCapacity;
+      if (
+        leftFill < minFill ||
+        leftFill > 1 ||
+        rightFill < minFill ||
+        rightFill > 1
+      )
+        continue;
+      const difference = Math.abs(leftFill - rightFill);
+      if (difference >= originalDifference) continue;
+      candidates.push({
+        cut,
+        difference,
+        section: previous[cut]?.startsSection === true,
+      });
+    }
+
+    const sectionCandidates = candidates.filter(
+      (candidate) => candidate.section,
+    );
+    const preferred = sectionCandidates.length ? sectionCandidates : candidates;
+    preferred.sort((a, b) => a.difference - b.difference);
+    const best = preferred[0];
+    if (!best) continue; // 큰 이미지·수식 등 나눌 수 없는 내용은 억지로 줄이지 않는다.
+    balanced[index - 1] = position(previous.slice(0, best.cut));
+    balanced[index] = position([...previous.slice(best.cut), ...current]);
+  }
+  return balanced;
 }

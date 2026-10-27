@@ -27,6 +27,7 @@
     "removeComments": true,
     "preserveConstEnums": true,
     "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "paths": {
       "src/*": ["./src/*"],
       "styles/*": ["./styles/*"]

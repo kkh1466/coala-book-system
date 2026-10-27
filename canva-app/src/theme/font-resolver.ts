@@ -1,5 +1,6 @@
 import type { Font, FontRef, FontWeight, FontWeightName } from "@canva/asset";
 import { findFonts } from "@canva/asset";
+import type { ResolvedMath } from "../builder/prepare-math";
 import type { ResolvedImages } from "../builder/image-assets";
 
 /**
@@ -56,6 +57,8 @@ export type ResolvedBookFonts = {
    * 이미지 자리를 비워 둔다.
    */
   images?: ResolvedImages;
+  /** Fully prepared equation SVGs and metrics, shared by font retries. */
+  math?: ResolvedMath;
 };
 
 export type CodeFont = {

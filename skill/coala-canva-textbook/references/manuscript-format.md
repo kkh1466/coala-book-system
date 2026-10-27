@@ -257,6 +257,37 @@ print("안녕하세요")
 ```
 ````
 
+## Math blocks
+
+On `concept layout="basic"` pages, write important formulas as LaTeX between standalone `$$` lines at column one. Place them below the page title, as independent body blocks, outside headings, lists, tables, callouts, cards, and code/dialogue blocks. Inline math (`$...$`, `\(...\)`) and `\[...\]` are not supported. Keep ordinary prose such as `P(A)` as ordinary text.
+
+```markdown
+$$
+P(A)=\frac{\text{사건 A가 일어나는 경우의 수}}{\text{일어날 수 있는 모든 경우의 수}}
+$$
+
+$$
+\sqrt{\frac{x-1}{x+1}}\qquad x^{n+1}\qquad A\cap B
+$$
+```
+
+Use `\frac{a}{b}`, `x^2`, `a_i`, `\sqrt{x}`, `\sqrt[3]{x}`, `\cap`, `\cup`, `\in`, `\subseteq`, and `\mid`. Put Korean labels in `\text{...}` and write percentages as `60\%`. For example, `P(A\mid B)=\frac{P(A\cap B)}{P(B)}`. Do not wrap math blocks in `**` or code fences.
+
+For a long equation, use explicit aligned lines, preserving its mathematical meaning:
+
+```markdown
+$$
+\begin{aligned}
+P(\text{비}\mid\text{먹구름})&=\frac{24}{40}\\
+&=0.6=60\%
+\end{aligned}
+$$
+```
+
+The app prepares self-contained transparent SVGs with the same renderer and Korean font used by `validate`. No equation assets or external rendering service are required. The base size is 28 pt; scripts use mathematical proportions. Formulas are centered at their natural size. They move intact to the next page when needed; an equation larger than the safe area is an error requesting line breaks or separate blocks, never automatic shrinking. Definitions, external-resource/link commands, manual equation numbers, and packages outside the installed base/AMS set are not supported.
+
+Syntax and typesetting errors must pass `npm run validate -- <book.md> --layout` before Canva generation. Canva allows moving/resizing the equation as a whole; edit its content in `book.md` and regenerate. Existing code, prompt, response, and output fences keep dollar signs as literal text.
+
 ## Flow strip
 
 The horizontal row of white cards joined by thin lines at the top of `assets/page-examples/caution-box.png`. Write a ```` ```flow ```` block on a `concept` page with `layout="basic"`; each line is one card as `제목 | 부제`, and the subtitle is optional. Two to five cards.
@@ -415,6 +446,7 @@ The parser rejects any syntax it cannot lay out. Earlier versions let these thro
 | `###` | `chapter-opening` only: `### 학습 목표` and one concept subsection heading. |
 | Paragraphs, `- ` lists, `1. ` lists | Body text. Lists are one level deep. |
 | `**강조**` | The only inline formatting. |
+| Standalone `$$` math blocks | `concept layout="basic"` body only; see "Math blocks". |
 | `> [!TIP]`, `> [!KEY_POINT]` (rendered as `💡 Tip` and `📑 핵심정리`) | One per page, on `concept`, `comparison`, `practice-opening`, and `practice-checklist`; not on `screenshot-guide`. The marker stands alone on its line, starting at column one; the text follows on `> ` lines directly below. |
 | Table | `comparison` pages only, one table. The introduction above it is sentences, not a list. Text below the table is rejected; use the callout. |
 | `- [ ]` checklist | `practice-opening` and `practice-checklist` only, written with `-`. |

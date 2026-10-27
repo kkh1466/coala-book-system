@@ -87,3 +87,12 @@ Fail the page if any confirmed font or spacing value must be reduced, if meaning
 Render the cover, contents, one chapter opening, one concept page, one practice opening, one screenshot page, one diagram or table page, and the final page. Compare hierarchy, whitespace, alignment, and color roles with retained reference images when available.
 
 Report unverified values and missing assets. Never mark exact visual fidelity as verified while `references/pending-values.md` contains unresolved items needed for that claim.
+
+## Math blocks
+
+- [ ] Important formulas from the notes use supported standalone math syntax on basic concept pages. Korean labels, set operators, fractions, exponents, and all numerical values match the source.
+- [ ] The complete manuscript passes `validate --layout`, including equation typesetting and size checks.
+- [ ] Equations are generated automatically, separate from image placeholders; no missing equation asset is handed to the user.
+- [ ] Base scale remains 28 pt and oversized equations are split explicitly rather than shrunk.
+- [ ] Canva preview and exported PDF checks, when performed, verify Korean glyphs, fraction/root strokes, margins, and surrounding text. Report manual checks still outstanding.
+- [ ] Recheck final page numbers and chapter/contents references after equation layout changes.

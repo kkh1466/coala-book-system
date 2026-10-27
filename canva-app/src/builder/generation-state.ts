@@ -1,3 +1,4 @@
+import { mathSourcesOf } from "./math-source";
 import type { PageId } from "@canva/design";
 import type { BookSpec } from "../types/book-spec";
 import type { BookProgressEvent } from "./create-book";
@@ -43,7 +44,8 @@ export function isGenerateDisabled(state: {
 
 const secondsText = (milliseconds: number): string => {
   const seconds = milliseconds / 1_000;
-  const rounded = seconds >= 1 ? Math.round(seconds) : Math.round(seconds * 10) / 10;
+  const rounded =
+    seconds >= 1 ? Math.round(seconds) : Math.round(seconds * 10) / 10;
   return `${rounded}초`;
 };
 
@@ -192,7 +194,10 @@ export function buildFailureReport(error: unknown): FailureReport {
 
 /** 같은 원고인지 판단하기 위한 지문. */
 export function bookFingerprint(spec: BookSpec): string {
-  const source = JSON.stringify(spec);
+  const source =
+    JSON.stringify(spec) +
+    "|balanced-concepts-v1" +
+    (mathSourcesOf(spec).length ? "|math-layout-v2" : "");
   let hash = 0x811c9dc5;
   for (let index = 0; index < source.length; index += 1) {
     hash ^= source.charCodeAt(index);
