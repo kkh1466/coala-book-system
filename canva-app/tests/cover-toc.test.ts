@@ -10,6 +10,7 @@ import {
 import { coalaTheme } from "../src/theme/coala-theme";
 import { PAGE, TOC } from "../src/theme/page-layout";
 import { TYPOGRAPHY } from "../src/theme/typography";
+import { validateBookPage } from "../src/types/book-spec";
 import {
   findText,
   installRecordingRichtext,
@@ -44,6 +45,9 @@ const toc = (rows: string[], header = "| 번호 | 제목 | 쪽 |\n|---|---|---|"
   [':::page{type="toc" id="toc"}', "# 목차", "", header, ...rows, ":::"].join(
     "\n",
   );
+
+const compactToc = (rows: string[]) =>
+  toc(rows).replace('id="toc"', 'id="toc" layout="compact"');
 
 describe("cover page", () => {
   it("reads the title, subtitle and brand, and takes the institution from front matter", () => {
@@ -112,6 +116,87 @@ describe("cover page", () => {
 });
 
 describe("toc page", () => {
+  it("reads the compact layout and rejects unsupported layout names", () => {
+    const body = compactToc(["| 01 | AI 디지털 리터러시 | 1 |"]);
+    expect(parseBookMarkdown(source(body)).pages[0]).toMatchObject({
+      type: "toc",
+      layout: "compact",
+    });
+    expect(() =>
+      parseBookMarkdown(source(body.replace('layout="compact"', 'layout="tiny"'))),
+    ).toThrow('layout은 "standard" 또는 "compact"');
+    expect(() =>
+      validateBookPage(
+        {
+          type: "toc",
+          id: "toc",
+          title: "목차",
+          layout: "tiny",
+          entries: [{ label: "01", title: "제목" }],
+        } as never,
+        0,
+      ),
+    ).toThrow("layout must be standard or compact");
+  });
+
+  it("fits thirteen compact entries without shrinking fonts or row spacing", () => {
+    const rows = Array.from(
+      { length: 13 },
+      (_, index) =>
+        `| ${String(index + 1).padStart(2, "0")} | 단원 ${index + 1} | ${index + 1} |`,
+    );
+    const standard = parseBookMarkdown(source(toc(rows)));
+    const compact = parseBookMarkdown(source(compactToc(rows)));
+    const standardPages = layoutBook(
+      standard,
+      planBook(standard).pages,
+      wantedSansFonts,
+    );
+    const compactPages = layoutBook(
+      compact,
+      planBook(compact).pages,
+      wantedSansFonts,
+    );
+
+    expect(standardPages).toHaveLength(2);
+    expect(compactPages).toHaveLength(1);
+    const page = compactPages[0];
+    const texts = textElements(page?.elements ?? []);
+    expect(texts).toHaveLength(40);
+    expect(page?.pageNumber).toBeUndefined();
+    expect(page?.background).toBe(coalaTheme.colors.contentsBackground);
+    const title = findText(page?.elements ?? [], "목차");
+    expect(title.fontSizePt).toBe(TYPOGRAPHY.tocTitle);
+    expect(title.top).toBe(findText(standardPages[0]?.elements ?? [], "목차").top);
+    for (const text of texts.filter((text) => text.text !== "목차")) {
+      expect(text.fontSizePt).toBe(TYPOGRAPHY.tocEntry);
+      expect(
+        text.top + (text.fontSize ?? 0) * (text.lineHeightEm ?? 1),
+      ).toBeLessThanOrEqual(PAGE.safeBottom);
+    }
+    const labels = texts.filter(
+      (text) => /^\d\d$/.test(text.text) && text.left === PAGE.marginX,
+    );
+    expect(labels).toHaveLength(13);
+    expect(
+      labels.slice(1).map((label, index) => label.top - (labels[index]?.top ?? 0)),
+    ).toEqual(Array(12).fill(TOC.row.minHeight));
+  });
+
+  it("still paginates compact contents that exceed the available space", () => {
+    const rows = Array.from(
+      { length: 14 },
+      (_, index) =>
+        `| ${String(index + 1).padStart(2, "0")} | 단원 ${index + 1} | ${index + 1} |`,
+    );
+    const spec = parseBookMarkdown(source(compactToc(rows)));
+    const pages = layoutBook(spec, planBook(spec).pages, wantedSansFonts);
+
+    expect(pages).toHaveLength(2);
+    expect(pages[1]?.title).toBe("목차(계속)");
+    expect(pages.every((page) => page.pageNumber === undefined)).toBe(true);
+  });
+
   it("reads number, title and page columns", () => {
     const spec = parseBookMarkdown(
       source(
@@ -252,7 +337,7 @@ describe("toc page", () => {
 });
 
 describe("ai-math cover-toc manuscript", () => {
-  it("passes validation and becomes exactly two unnumbered pages", () => {
+  it("passes validation with a cover and two unnumbered contents pages", () => {
     const { spec, issues } = checkBookMarkdown(
       fs.readFileSync(manuscriptPath, "utf8"),
     );
@@ -261,10 +346,10 @@ describe("ai-math cover-toc manuscript", () => {
     if (!spec) {
       throw new Error("원고가 검사를 통과하지 못했습니다.");
     }
-    expect(spec.pages.map((page) => page.type)).toEqual(["cover", "toc"]);
+    expect(spec.pages.map((page) => page.type)).toEqual(["cover", "toc", "toc"]);
 
     const pages = layoutBook(spec, planBook(spec).pages, wantedSansFonts);
-    expect(pages).toHaveLength(2);
+    expect(pages).toHaveLength(3);
     expect(pages.every((page) => page.pageNumber === undefined)).toBe(true);
   });
 });

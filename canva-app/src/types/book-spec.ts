@@ -78,6 +78,8 @@ export type TocEntry = {
 export type TocPage = PageBase & {
   type: "toc";
   title: string;
+  /** compact는 글자 크기와 행 간격을 유지하고 제목 아래의 빈 공간만 줄인다. */
+  layout?: "standard" | "compact";
   entries: TocEntry[];
 };
 
@@ -330,6 +332,15 @@ export function validateBookPage(page: BookPage, pageIndex: number): void {
 function validateTocPage(page: TocPage, pageIndex: number): void {
   const prefix = `pages[${pageIndex}]`;
   requireText(page.title, `${prefix}.title`);
+  if (
+    page.layout !== undefined &&
+    page.layout !== "standard" &&
+    page.layout !== "compact"
+  ) {
+    throw new BookSpecValidationError(
+      `${prefix}.layout must be standard or compact.`,
+    );
+  }
   if (!Array.isArray(page.entries) || page.entries.length === 0) {
     throw new BookSpecValidationError(`${prefix}.entries must not be empty.`);
   }

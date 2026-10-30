@@ -228,6 +228,8 @@ export const COVER = {
 export const TOC = {
   title: { top: 200 },
   entriesTop: 680,
+  /** 한 페이지 목차용. 90pt 제목 아래의 여백만 줄여 13개 항목을 배치한다. */
+  compactEntriesTop: 400,
   row: {
     /** 한 줄짜리 항목의 높이. 제목이 길어 줄이 늘면 그만큼 커진다. */
     minHeight: 125,

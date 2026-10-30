@@ -135,7 +135,7 @@ export function layoutToc(page: TocPage, fonts: ResolvedBookFonts): PagePart[] {
     entryItem(entry, fonts, index === page.entries.length - 1),
   );
   const pages = flowIntoPages(items, {
-    top: TOC.entriesTop,
+    top: page.layout === "compact" ? TOC.compactEntriesTop : TOC.entriesTop,
     bottom: PAGE.safeBottom,
   });
 

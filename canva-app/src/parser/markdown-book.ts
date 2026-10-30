@@ -568,6 +568,13 @@ const TOC_COLUMNS = { min: 2, max: 3 } as const;
  * 원고의 쪽 범위는 `npm run validate -- --layout`이 알려 준다.
  */
 function parseToc(rawPage: RawPage, id: string): TocPage {
+  const layout = rawPage.attributes.layout;
+  if (layout !== undefined && layout !== "standard" && layout !== "compact") {
+    throw new MarkdownBookParseError(
+      'toc 페이지의 layout은 "standard" 또는 "compact"여야 합니다.',
+      rawPage.startLine,
+    );
+  }
   const lines = rawPage.body.split("\n");
   const titleIndex = firstHeadingIndex(lines, 1, rawPage, "목차 제목");
   const tableStart = lines.findIndex((line) => /^\s*\|.*\|\s*$/.test(line));
@@ -630,6 +637,7 @@ function parseToc(rawPage: RawPage, id: string): TocPage {
     type: "toc",
     id,
     title: headingText(lines[titleIndex] ?? "", 1),
+    ...(layout ? { layout } : {}),
     entries,
   };
 }

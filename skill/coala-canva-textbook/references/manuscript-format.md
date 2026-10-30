@@ -56,6 +56,8 @@ A book has one cover, placed in its own manuscript (for example `cover-toc.md` b
 
 A `#` title followed by one Markdown table with two columns (number, title) or three (number, title, page). The header row is not rendered. Page numbers are written by the author: the app cannot know another manuscript's pagination, so read each chapter's range from `npm run validate -- <book.md> --layout` and type it in. The page is not counted or numbered; when the rows overflow, the list continues on `목차(계속)`.
 
+When the user explicitly requests a one-page contents list, use `layout="compact"` on the `toc` page. It reduces the empty space below the title while preserving the 90 pt contents title, 30 pt entries, row spacing, and outer margins. Thirteen single-line entries fit on one page. Long titles or more entries may still continue; fonts are never shrunk. Omitting `layout`, or using `layout="standard"`, preserves the original template spacing.
+
 ```markdown
 :::page{type="toc" id="toc"}
 # 목차
